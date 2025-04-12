@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @WebServlet("/order/*")
 public class OrderServlet extends HttpServlet {
@@ -31,7 +32,91 @@ public class OrderServlet extends HttpServlet {
         productDAO = new ProductDAO(fileInitUtil);
     }
 
-    // Previous methods from the last artifact remain the same
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+
+        if (pathInfo == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid request");
+            return;
+        }
+
+        switch (pathInfo) {
+            case "/create":
+                createOrder(request, response);
+                break;
+            case "/cancel":
+                cancelOrder(request, response);
+                break;
+            case "/update-status":
+                updateOrderStatus(request, response);
+                break;
+            default:
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+
+        if (pathInfo == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid request");
+            return;
+        }
+
+        switch (pathInfo) {
+            case "/list":
+                listOrders(request, response);
+                break;
+            case "/my-orders":
+                getUserOrders(request, response);
+                break;
+            case "/details":
+                getOrderDetails(request, response);
+                break;
+            default:
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    private void createOrder(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Implementation would depend on your requirements
+        // This is typically handled by the CartServlet's checkout process
+        response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, "Use cart checkout instead");
+    }
+
+    private void updateOrderStatus(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (!isAdminUser(session)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+            return;
+        }
+
+        String orderId = request.getParameter("orderId");
+        String statusStr = request.getParameter("status");
+
+        Optional<Order> orderOptional = orderDAO.getOrderById(orderId);
+        if (!orderOptional.isPresent()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Order not found");
+            return;
+        }
+
+        Order order = orderOptional.get();
+        order.setStatus(Order.OrderStatus.valueOf(statusStr));
+
+        if (orderDAO.updateOrder(order)) {
+            request.setAttribute("success", "Order status updated successfully");
+            request.getRequestDispatcher("/views/order/order-details.jsp").forward(request, response);
+        } else {
+            request.setAttribute("error", "Failed to update order status");
+            request.getRequestDispatcher("/views/order/order-details.jsp").forward(request, response);
+        }
+    }
 
     private void cancelOrder(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -45,7 +130,7 @@ public class OrderServlet extends HttpServlet {
         String orderId = request.getParameter("orderId");
 
         Optional<Order> orderOptional = orderDAO.getOrderById(orderId);
-        if (orderOptional.isEmpty()) {
+        if (!orderOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Order not found");
             return;
         }
@@ -113,7 +198,7 @@ public class OrderServlet extends HttpServlet {
         String orderId = request.getParameter("orderId");
 
         Optional<Order> orderOptional = orderDAO.getOrderById(orderId);
-        if (orderOptional.isEmpty()) {
+        if (!orderOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Order not found");
             return;
         }
@@ -131,7 +216,7 @@ public class OrderServlet extends HttpServlet {
         List<Order.OrderItem> orderItems = order.getItems();
         List<Product> orderProducts = orderItems.stream()
                 .map(item -> productDAO.getProductById(item.getProductId()).orElse(null))
-                .toList();
+                .collect(Collectors.toList());
 
         request.setAttribute("order", order);
         request.setAttribute("orderProducts", orderProducts);

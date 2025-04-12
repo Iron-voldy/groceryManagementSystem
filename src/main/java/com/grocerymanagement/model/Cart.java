@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class Cart implements Serializable {
     private String cartId;
@@ -87,7 +88,7 @@ public class Cart implements Serializable {
     public String toFileString() {
         List<String> itemStrings = items.stream()
                 .map(CartItem::toFileString)
-                .toList();
+                .collect(Collectors.toList());
 
         return String.join("||",
                 cartId,

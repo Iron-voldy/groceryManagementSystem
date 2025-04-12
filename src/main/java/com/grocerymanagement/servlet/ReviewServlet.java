@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @WebServlet("/review/*")
 public class ReviewServlet extends HttpServlet {
@@ -109,11 +110,13 @@ public class ReviewServlet extends HttpServlet {
 
         // Verify product exists
         Optional<Product> productOptional = productDAO.getProductById(productId);
-        if (productOptional.isEmpty()) {
+
+        if (!productOptional.isPresent()) {
             request.setAttribute("error", "Product not found");
             request.getRequestDispatcher("/views/review/submit-review.jsp").forward(request, response);
             return;
         }
+
 
         // Verify user has purchased the product (optional strict validation)
         List<Order> userOrders = orderDAO.getOrdersByUserId(currentUser.getUserId());
@@ -158,7 +161,8 @@ public class ReviewServlet extends HttpServlet {
 
         // Get existing review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
-        if (reviewOptional.isEmpty()) {
+
+        if (!reviewOptional.isPresent()) {
             request.setAttribute("error", "Review not found");
             request.getRequestDispatcher("/views/review/update-review.jsp").forward(request, response);
             return;
@@ -205,9 +209,10 @@ public class ReviewServlet extends HttpServlet {
 
         // Get review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
-        if (reviewOptional.isEmpty()) {
+
+        if (!reviewOptional.isPresent()) {
             request.setAttribute("error", "Review not found");
-            request.getRequestDispatcher("/views/review/moderation.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/review/update-review.jsp").forward(request, response);
             return;
         }
 
@@ -236,9 +241,9 @@ public class ReviewServlet extends HttpServlet {
 
         // Get review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
-        if (reviewOptional.isEmpty()) {
+        if (!reviewOptional.isPresent()) {
             request.setAttribute("error", "Review not found");
-            request.getRequestDispatcher("/views/review/user-reviews.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/review/update-review.jsp").forward(request, response);
             return;
         }
 
@@ -266,7 +271,8 @@ public class ReviewServlet extends HttpServlet {
 
         // Verify product exists
         Optional<Product> productOptional = productDAO.getProductById(productId);
-        if (productOptional.isEmpty()) {
+
+        if (!productOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
             return;
         }
@@ -274,7 +280,7 @@ public class ReviewServlet extends HttpServlet {
         // Get approved reviews for the product
         List<Review> reviews = reviewDAO.getReviewsByProductId(productId).stream()
                 .filter(review -> review.getStatus() == Review.ReviewStatus.APPROVED)
-                .toList();
+                .collect(Collectors.toList());
 
         // Calculate average rating
         double averageRating = reviewDAO.calculateAverageRatingForProduct(productId);
@@ -313,7 +319,8 @@ public class ReviewServlet extends HttpServlet {
 
         // Get review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
-        if (reviewOptional.isEmpty()) {
+
+        if (!reviewOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Review not found");
             return;
         }

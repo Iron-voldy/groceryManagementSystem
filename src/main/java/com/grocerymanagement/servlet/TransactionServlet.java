@@ -89,7 +89,8 @@ public class TransactionServlet extends HttpServlet {
 
         // Validate order
         Optional<Order> orderOptional = orderDAO.getOrderById(orderId);
-        if (orderOptional.isEmpty()) {
+
+        if (!orderOptional.isPresent()) {
             request.setAttribute("error", "Order not found");
             request.getRequestDispatcher("/views/transaction/payment.jsp").forward(request, response);
             return;
@@ -140,7 +141,8 @@ public class TransactionServlet extends HttpServlet {
 
         // Get transaction
         Optional<Transaction> transactionOptional = transactionDAO.getTransactionById(transactionId);
-        if (transactionOptional.isEmpty()) {
+
+        if (!transactionOptional.isPresent()) {
             request.setAttribute("error", "Transaction not found");
             request.getRequestDispatcher("/views/transaction/refund.jsp").forward(request, response);
             return;
@@ -201,7 +203,7 @@ public class TransactionServlet extends HttpServlet {
         String transactionId = request.getParameter("transactionId");
 
         Optional<Transaction> transactionOptional = transactionDAO.getTransactionById(transactionId);
-        if (transactionOptional.isEmpty()) {
+        if (!transactionOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Transaction not found");
             return;
         }

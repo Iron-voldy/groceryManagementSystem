@@ -124,7 +124,7 @@ public class ProductServlet extends HttpServlet {
         String productId = request.getParameter("productId");
         Optional<Product> productOptional = productDAO.getProductById(productId);
 
-        if (productOptional.isEmpty()) {
+        if (!productOptional.isPresent()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
             return;
         }
