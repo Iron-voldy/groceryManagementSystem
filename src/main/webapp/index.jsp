@@ -11,7 +11,7 @@
     <div class="hero-content">
         <h1>Fresh Groceries Delivered to Your Door</h1>
         <p>Shop for the finest selection of fresh produce, pantry essentials, and household items.</p>
-        <a href="${pageContext.request.contextPath}/product/list" class="btn btn-lg">Shop Now</a>
+        <a href="<c:url value='/product/list'/>" class="btn btn-lg">Shop Now</a>
     </div>
 </section>
 
@@ -19,23 +19,23 @@
 <section class="section">
     <h2 class="section-title">Shop by Category</h2>
     <div class="categories-grid">
-        <a href="${pageContext.request.contextPath}/product/category?category=Fresh+Products" class="category-card">
+        <a href="<c:url value='/product/category?category=Fresh+Products'/>" class="category-card">
             <div class="category-img" style="background-color: #4a5568;">🥩</div>
             <h3>Fresh Products</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/product/category?category=Dairy" class="category-card">
+        <a href="<c:url value='/product/category?category=Dairy'/>" class="category-card">
             <div class="category-img" style="background-color: #4a5568;">🥛</div>
             <h3>Dairy</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/product/category?category=Vegetables" class="category-card">
+        <a href="<c:url value='/product/category?category=Vegetables'/>" class="category-card">
             <div class="category-img" style="background-color: #4a5568;">🥦</div>
             <h3>Vegetables</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/product/category?category=Fruits" class="category-card">
+        <a href="<c:url value='/product/category?category=Fruits'/>" class="category-card">
             <div class="category-img" style="background-color: #4a5568;">🍎</div>
             <h3>Fruits</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/product/category?category=Pantry+Items" class="category-card">
+        <a href="<c:url value='/product/category?category=Pantry+Items'/>" class="category-card">
             <div class="category-img" style="background-color: #4a5568;">🥫</div>
             <h3>Pantry Items</h3>
         </a>
@@ -55,7 +55,7 @@
                     <div class="product-price">$${product.price}</div>
                     <p class="product-description">${product.description.length() > 80 ? product.description.substring(0, 80).concat('...') : product.description}</p>
                     <div class="product-actions">
-                        <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}" class="btn btn-sm">View</a>
+                        <a href="<c:url value='/product/details?productId=${product.productId}'/>" class="btn btn-sm">View</a>
                         <button onclick="addToCart('${product.productId}')" class="btn btn-sm btn-secondary">Add to Cart</button>
                     </div>
                 </div>
@@ -127,62 +127,7 @@
     </div>
 
     <div class="view-all-button">
-        <a href="${pageContext.request.contextPath}/product/list" class="btn">View All Products</a>
-    </div>
-</section>
-
-<!-- Why Choose Us -->
-<section class="section why-choose-us">
-    <h2 class="section-title">Why Choose Us</h2>
-    <div class="features-grid">
-        <div class="feature-card">
-            <div class="feature-icon">🚚</div>
-            <h3>Fast Delivery</h3>
-            <p>Get your groceries delivered to your doorstep within hours of ordering.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">🌱</div>
-            <h3>Fresh Produce</h3>
-            <p>We source our products directly from local farmers for maximum freshness.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">💰</div>
-            <h3>Best Prices</h3>
-            <p>Competitive prices and regular deals to help you save on your grocery bills.</p>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">🔄</div>
-            <h3>Easy Returns</h3>
-            <p>Not satisfied? We offer hassle-free returns and refunds.</p>
-        </div>
-    </div>
-</section>
-
-<!-- Customer Testimonials -->
-<section class="section testimonials">
-    <h2 class="section-title">What Our Customers Say</h2>
-    <div class="testimonials-grid">
-        <div class="testimonial-card">
-            <div class="testimonial-text">
-                "I've been shopping with GroceryShop for over a year now, and I'm consistently impressed by the quality of their products and service."
-            </div>
-            <div class="testimonial-author">- Sarah Johnson</div>
-            <div class="testimonial-rating">★★★★★</div>
-        </div>
-        <div class="testimonial-card">
-            <div class="testimonial-text">
-                "Their delivery is always on time, and the produce is so fresh. It's like having a farmers market delivered to my door!"
-            </div>
-            <div class="testimonial-author">- Michael Chen</div>
-            <div class="testimonial-rating">★★★★★</div>
-        </div>
-        <div class="testimonial-card">
-            <div class="testimonial-text">
-                "The customer service is exceptional. I had an issue with an order once, and they resolved it immediately and gave me a discount on my next purchase."
-            </div>
-            <div class="testimonial-author">- Emily Rodriguez</div>
-            <div class="testimonial-rating">★★★★☆</div>
-        </div>
+        <a href="<c:url value='/product/list'/>" class="btn">View All Products</a>
     </div>
 </section>
 
@@ -191,7 +136,7 @@
     <div class="cta-content">
         <h2>Ready to Start Shopping?</h2>
         <p>Join thousands of satisfied customers and experience the convenience of online grocery shopping.</p>
-        <a href="${pageContext.request.contextPath}/product/list" class="btn btn-lg">Shop Now</a>
+        <a href="<c:url value='/product/list'/>" class="btn btn-lg">Shop Now</a>
     </div>
 </section>
 
@@ -273,57 +218,6 @@
     margin-top: 30px;
 }
 
-.features-grid, .testimonials-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px;
-}
-
-.feature-card {
-    background-color: var(--dark-surface);
-    border-radius: var(--border-radius);
-    padding: 30px;
-    text-align: center;
-    box-shadow: var(--card-shadow);
-    transition: var(--transition);
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-}
-
-.feature-icon {
-    font-size: 3rem;
-    margin-bottom: 15px;
-}
-
-.feature-card h3 {
-    margin-bottom: 15px;
-    font-size: 1.5rem;
-}
-
-.testimonial-card {
-    background-color: var(--dark-surface);
-    border-radius: var(--border-radius);
-    padding: 25px;
-    box-shadow: var(--card-shadow);
-}
-
-.testimonial-text {
-    font-style: italic;
-    margin-bottom: 15px;
-}
-
-.testimonial-author {
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.testimonial-rating {
-    color: var(--secondary);
-}
-
 .cta-section {
     background-color: var(--primary);
     padding: 60px 20px;
@@ -360,10 +254,6 @@
 @media (max-width: 768px) {
     .hero-content h1 {
         font-size: 2rem;
-    }
-
-    .feature-card, .testimonial-card {
-        padding: 20px;
     }
 }
 </style>

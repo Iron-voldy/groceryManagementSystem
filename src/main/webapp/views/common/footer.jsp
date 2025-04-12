@@ -11,21 +11,21 @@
                 <div class="footer-section">
                     <h3 class="footer-title">Quick Links</h3>
                     <ul class="footer-links">
-                        <li><a href="${pageContext.request.contextPath}/index.jsp">Home</a></li>
-                        <li><a href="${pageContext.request.contextPath}/product/list">Products</a></li>
-                        <li><a href="${pageContext.request.contextPath}/views/about.jsp">About Us</a></li>
-                        <li><a href="${pageContext.request.contextPath}/views/contact.jsp">Contact Us</a></li>
+                        <li><a href="<c:url value='/index.jsp'/>">Home</a></li>
+                        <li><a href="<c:url value='/product/list'/>">Products</a></li>
+                        <li><a href="<c:url value='/views/about.jsp'/>">About Us</a></li>
+                        <li><a href="<c:url value='/views/contact.jsp'/>">Contact Us</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-section">
                     <h3 class="footer-title">Categories</h3>
                     <ul class="footer-links">
-                        <li><a href="${pageContext.request.contextPath}/product/category?category=Fresh+Products">Fresh Products</a></li>
-                        <li><a href="${pageContext.request.contextPath}/product/category?category=Dairy">Dairy</a></li>
-                        <li><a href="${pageContext.request.contextPath}/product/category?category=Vegetables">Vegetables</a></li>
-                        <li><a href="${pageContext.request.contextPath}/product/category?category=Fruits">Fruits</a></li>
-                        <li><a href="${pageContext.request.contextPath}/product/category?category=Pantry+Items">Pantry Items</a></li>
+                        <li><a href="<c:url value='/product/category?category=Fresh+Products'/>">Fresh Products</a></li>
+                        <li><a href="<c:url value='/product/category?category=Dairy'/>">Dairy</a></li>
+                        <li><a href="<c:url value='/product/category?category=Vegetables'/>">Vegetables</a></li>
+                        <li><a href="<c:url value='/product/category?category=Fruits'/>">Fruits</a></li>
+                        <li><a href="<c:url value='/product/category?category=Pantry+Items'/>">Pantry Items</a></li>
                     </ul>
                 </div>
 
@@ -43,11 +43,11 @@
         </div>
     </footer>
 
-    <script src="${pageContext.request.contextPath}/assets/js/main.js"></script>
+    <script src="<c:url value='/assets/js/main.js'/>"></script>
     <!-- Additional scripts based on page needs -->
-    <c:if test="${param.scripts != null}">
+    <c:if test="${not empty param.scripts}">
         <c:forEach var="script" items="${param.scripts}">
-            <script src="${pageContext.request.contextPath}/assets/js/${script}.js"></script>
+            <script src="<c:url value='/assets/js/${script}.js'/>"></script>
         </c:forEach>
     </c:if>
 </body>
