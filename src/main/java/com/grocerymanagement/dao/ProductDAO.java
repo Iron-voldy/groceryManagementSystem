@@ -98,7 +98,7 @@ public class ProductDAO {
 
     public boolean updateProductStock(String productId, int quantityChange) {
         Optional<Product> productOptional = getProductById(productId);
-        if (productOptional.isEmpty()) {
+        if (!productOptional.isPresent()) {
             return false;
         }
 
