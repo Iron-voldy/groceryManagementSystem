@@ -21,6 +21,25 @@
       <version>9.1.0</version>
       <scope>provided</scope>
     </dependency>
+
+      <!-- JSTL Dependencies -->
+      <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>jstl</artifactId>
+        <version>1.2</version>
+      </dependency>
+
+      <!-- If using Jakarta EE -->
+      <dependency>
+        <groupId>jakarta.servlet.jsp.jstl</groupId>
+        <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+        <version>2.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.web</groupId>
+        <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+        <version>2.0.0</version>
+      </dependency>
   </dependencies>
   <build>
     <finalName>grocerymanagement</finalName>
