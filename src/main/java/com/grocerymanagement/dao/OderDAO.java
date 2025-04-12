@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class OrderDAO {
+public OrderDAO {
     private String orderFilePath;
 
     public OrderDAO(FileInitializationUtil fileInitUtil) {
