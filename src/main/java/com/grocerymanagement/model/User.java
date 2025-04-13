@@ -2,6 +2,7 @@ package com.grocerymanagement.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 public class User implements Serializable {
@@ -31,20 +32,62 @@ public class User implements Serializable {
         this.role = role;
     }
 
-    // Getters and setters
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
-    public LocalDateTime getRegistrationDate() { return registrationDate; }
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public LocalDateTime getRegistrationDate() {
+        return registrationDate;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+
+    public void setRegistrationDate(LocalDateTime registrationDate) {
+        this.registrationDate = registrationDate;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 
     public String toFileString() {
         return String.join("|",
@@ -53,7 +96,7 @@ public class User implements Serializable {
                 email,
                 passwordHash,
                 role.name(),
-                registrationDate.toString(),
+                registrationDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), // Consistent date format
                 String.valueOf(isActive)
         );
     }
@@ -66,7 +109,7 @@ public class User implements Serializable {
         user.email = parts[2];
         user.passwordHash = parts[3];
         user.role = UserRole.valueOf(parts[4]);
-        user.registrationDate = LocalDateTime.parse(parts[5]);
+        user.registrationDate = LocalDateTime.parse(parts[5], DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         user.isActive = Boolean.parseBoolean(parts[6]);
         return user;
     }
