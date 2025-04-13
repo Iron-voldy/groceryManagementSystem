@@ -10,14 +10,15 @@
     <div class="page-header">
         <h1 class="page-title">Add New Product</h1>
         <div class="page-actions">
-            <a href="${pageContext.request.contextPath}/views/admin/products.jsp" class="btn btn-secondary">
+            <a href="${pageContext.request.contextPath}/product/list" class="btn btn-secondary">
                 <i class="fas fa-arrow-left">←</i> Back to Products
             </a>
         </div>
     </div>
 
     <div class="form-container">
-        <form action="${pageContext.request.contextPath}/product/add" method="post" class="product-form" data-validate="true">
+        <form action="${pageContext.request.contextPath}/product/add" method="post" class="product-form"
+              data-validate="true" enctype="multipart/form-data">
             <div class="form-card">
                 <h2 class="form-card-title">Product Information</h2>
 
@@ -53,6 +54,18 @@
                 <div class="form-group">
                     <label for="description">Description*</label>
                     <textarea id="description" name="description" rows="6" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="productImage">Product Image</label>
+                    <input type="file" id="productImage" name="productImage" accept="image/*">
+                    <small class="form-text">Upload an image of the product (JPG, PNG, GIF). Max size: 10MB</small>
+                </div>
+
+                <div class="image-preview-container">
+                    <div id="imagePreview" class="image-preview">
+                        No image selected
+                    </div>
                 </div>
             </div>
 
@@ -152,6 +165,29 @@
     gap: 15px;
 }
 
+.image-preview-container {
+    margin-top: 15px;
+}
+
+.image-preview {
+    width: 200px;
+    height: 200px;
+    border: 2px dashed #333;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-surface-hover);
+    color: var(--light-text);
+    overflow: hidden;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
 @media (max-width: 768px) {
     .page-header {
         flex-direction: column;
@@ -225,6 +261,19 @@ document.addEventListener('DOMContentLoaded', function() {
             clearError(descriptionInput);
         }
 
+        // Validate image file size if selected
+        const imageInput = document.getElementById('productImage');
+        if (imageInput.files.length > 0) {
+            const fileSize = imageInput.files[0].size;
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (fileSize > maxSize) {
+                showError(imageInput, 'Image file size should not exceed 10MB');
+                valid = false;
+            } else {
+                clearError(imageInput);
+            }
+        }
+
         return valid;
     }
 
@@ -247,6 +296,42 @@ document.addEventListener('DOMContentLoaded', function() {
             errorElement.remove();
         }
     }
+
+    // Image preview
+    const imageInput = document.getElementById('productImage');
+    const imagePreview = document.getElementById('imagePreview');
+
+    imageInput.addEventListener('change', function() {
+        // Clear preview
+        imagePreview.innerHTML = '';
+
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                imagePreview.appendChild(img);
+            }
+
+            reader.readAsDataURL(this.files[0]);
+        } else {
+            imagePreview.innerHTML = 'No image selected';
+        }
+    });
+
+    // Reset form handler
+    form.addEventListener('reset', function() {
+        // Clear all errors
+        const errorElements = document.querySelectorAll('.form-error');
+        errorElements.forEach(el => el.remove());
+
+        const invalidInputs = document.querySelectorAll('.is-invalid');
+        invalidInputs.forEach(input => input.classList.remove('is-invalid'));
+
+        // Clear image preview
+        imagePreview.innerHTML = 'No image selected';
+    });
 });
 </script>
 

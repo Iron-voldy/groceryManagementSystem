@@ -7,23 +7,37 @@ import com.grocerymanagement.model.User;
 import javax.servlet.ServletException;
 
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.Part;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @WebServlet("/product/*")
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024, // 1MB
+        maxFileSize = 1024 * 1024 * 10,  // 10MB
+        maxRequestSize = 1024 * 1024 * 50 // 50MB
+)
 public class ProductServlet extends HttpServlet {
     private ProductDAO productDAO;
+    private FileInitializationUtil fileInitUtil;
 
     @Override
     public void init() throws ServletException {
-        FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
+        fileInitUtil = new FileInitializationUtil(getServletContext());
         productDAO = new ProductDAO(fileInitUtil);
     }
 
@@ -88,6 +102,7 @@ public class ProductServlet extends HttpServlet {
             return;
         }
 
+        // Extract product information from form
         String name = request.getParameter("name");
         String category = request.getParameter("category");
         String priceStr = request.getParameter("price");
@@ -100,9 +115,38 @@ public class ProductServlet extends HttpServlet {
 
             Product newProduct = new Product(name, category, price, stockQuantity, description);
 
+            // Handle image upload
+            Part filePart = request.getPart("productImage");
+            if (filePart != null && filePart.getSize() > 0) {
+                String fileName = getSubmittedFileName(filePart);
+
+                // Generate a unique filename to prevent duplicates
+                String fileExtension = "";
+                if (fileName.contains(".")) {
+                    fileExtension = fileName.substring(fileName.lastIndexOf("."));
+                }
+                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+
+                // Save the file
+                String uploadPath = fileInitUtil.getImageUploadPath();
+                File uploadDir = new File(uploadPath);
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+
+                String filePath = new File(uploadDir, uniqueFileName).getAbsolutePath();
+
+                try (InputStream input = filePart.getInputStream()) {
+                    Files.copy(input, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // Save the relative path to the database
+                newProduct.setImagePath("/uploads/images/" + uniqueFileName);
+            }
+
             if (productDAO.createProduct(newProduct)) {
                 request.setAttribute("success", "Product added successfully");
-                request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+                response.sendRedirect(request.getContextPath() + "/product/list");
             } else {
                 request.setAttribute("error", "Failed to add product");
                 request.getRequestDispatcher("/views/product/add-product.jsp").forward(request, response);
@@ -144,9 +188,44 @@ public class ProductServlet extends HttpServlet {
             if (stockStr != null && !stockStr.isEmpty()) product.setStockQuantity(Integer.parseInt(stockStr));
             if (description != null && !description.isEmpty()) product.setDescription(description);
 
+            // Handle image upload
+            Part filePart = request.getPart("productImage");
+            if (filePart != null && filePart.getSize() > 0) {
+                String fileName = getSubmittedFileName(filePart);
+
+                // Generate a unique filename to prevent duplicates
+                String fileExtension = "";
+                if (fileName.contains(".")) {
+                    fileExtension = fileName.substring(fileName.lastIndexOf("."));
+                }
+                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+
+                // Save the file
+                String uploadPath = fileInitUtil.getImageUploadPath();
+                File uploadDir = new File(uploadPath);
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+
+                String filePath = new File(uploadDir, uniqueFileName).getAbsolutePath();
+
+                try (InputStream input = filePart.getInputStream()) {
+                    Files.copy(input, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // Delete old image if it exists
+                if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
+                    String oldImageFilePath = getServletContext().getRealPath(product.getImagePath());
+                    Files.deleteIfExists(Paths.get(oldImageFilePath));
+                }
+
+                // Save the relative path to the database
+                product.setImagePath("/uploads/images/" + uniqueFileName);
+            }
+
             if (productDAO.updateProduct(product)) {
                 request.setAttribute("success", "Product updated successfully");
-                request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+                response.sendRedirect(request.getContextPath() + "/product/list");
             } else {
                 request.setAttribute("error", "Failed to update product");
                 request.getRequestDispatcher("/views/product/product-edit.jsp").forward(request, response);
@@ -167,11 +246,27 @@ public class ProductServlet extends HttpServlet {
 
         String productId = request.getParameter("productId");
 
-        if (productDAO.deleteProduct(productId)) {
-            request.setAttribute("success", "Product deleted successfully");
-            request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+        // Get product to retrieve image path
+        Optional<Product> productOptional = productDAO.getProductById(productId);
+
+        if (productOptional.isPresent()) {
+            Product product = productOptional.get();
+
+            if (productDAO.deleteProduct(productId)) {
+                // Delete product image if it exists
+                if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
+                    String imagePath = getServletContext().getRealPath(product.getImagePath());
+                    Files.deleteIfExists(Paths.get(imagePath));
+                }
+
+                request.setAttribute("success", "Product deleted successfully");
+                response.sendRedirect(request.getContextPath() + "/product/list");
+            } else {
+                request.setAttribute("error", "Failed to delete product");
+                request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+            }
         } else {
-            request.setAttribute("error", "Failed to delete product");
+            request.setAttribute("error", "Product not found");
             request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
         }
     }
@@ -218,5 +313,17 @@ public class ProductServlet extends HttpServlet {
         if (session == null) return false;
         User user = (User) session.getAttribute("user");
         return user != null && user.getRole() == User.UserRole.ADMIN;
+    }
+
+    // Helper method to get the submitted filename
+    private String getSubmittedFileName(Part part) {
+        for (String cd : part.getHeader("content-disposition").split(";")) {
+            if (cd.trim().startsWith("filename")) {
+                String fileName = cd.substring(cd.indexOf('=') + 1).trim().replace("\"", "");
+                return fileName.substring(fileName.lastIndexOf('/') + 1)
+                        .substring(fileName.lastIndexOf('\\') + 1);
+            }
+        }
+        return null;
     }
 }

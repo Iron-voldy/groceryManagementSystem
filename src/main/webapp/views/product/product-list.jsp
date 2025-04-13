@@ -62,8 +62,24 @@
             <c:forEach var="product" items="${products}">
                 <div class="product-card">
                     <div class="product-img">
-                        <!-- Product image placeholder -->
-                        <div class="product-img-placeholder">${product.category.substring(0, 1)}</div>
+                        <c:choose>
+                            <c:when test="${not empty product.imagePath}">
+                                <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}">
+                            </c:when>
+                            <c:otherwise>
+                                <!-- Product image placeholder -->
+                                <div class="product-img-placeholder">
+                                    <c:choose>
+                                        <c:when test="${product.category == 'Fresh Products'}">🥩</c:when>
+                                        <c:when test="${product.category == 'Dairy'}">🥛</c:when>
+                                        <c:when test="${product.category == 'Vegetables'}">🥦</c:when>
+                                        <c:when test="${product.category == 'Fruits'}">🍎</c:when>
+                                        <c:when test="${product.category == 'Pantry Items'}">🥫</c:when>
+                                        <c:otherwise>🛒</c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                     <div class="product-details">
                         <h3 class="product-title">${product.name}</h3>
@@ -201,6 +217,12 @@
     align-items: center;
 }
 
+.product-img img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
 .product-img-placeholder {
     font-size: 3rem;
     color: var(--dark-text);
@@ -336,6 +358,60 @@ function sortProducts(sortOption) {
     // Clear and append sorted cards
     productGrid.innerHTML = '';
     productCards.forEach(card => productGrid.appendChild(card));
+}
+
+function addToCart(productId, quantity = 1) {
+    fetch(`${pageContext.request.contextPath}/cart/add`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `productId=${productId}&quantity=${quantity}`
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification('Product added to cart successfully');
+
+            // Update cart count in header
+            const cartCountElements = document.querySelectorAll('.cart-count');
+            cartCountElements.forEach(element => {
+                element.textContent = data.cartItemCount;
+                element.classList.add('has-items');
+            });
+        } else {
+            showNotification(data.message || 'Failed to add product to cart', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding to cart:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
 }
 </script>
 

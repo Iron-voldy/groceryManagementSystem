@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 public class FileInitializationUtil {
     private ServletContext servletContext;
     private String baseDataPath;
+    private String imageUploadPath;
 
     public FileInitializationUtil(ServletContext servletContext) {
         this.servletContext = servletContext;
@@ -23,14 +24,19 @@ public class FileInitializationUtil {
         if (servletContext != null) {
             // Web application context
             baseDataPath = servletContext.getRealPath("/WEB-INF/data");
+            imageUploadPath = servletContext.getRealPath("/uploads/images");
         } else {
             // Standalone application
             baseDataPath = "data";
+            imageUploadPath = "uploads/images";
         }
 
         try {
             // Ensure data directory exists
             Files.createDirectories(Paths.get(baseDataPath));
+
+            // Ensure image upload directory exists
+            Files.createDirectories(Paths.get(imageUploadPath));
 
             // Initialize essential files
             initializeFile("users.txt");
@@ -57,5 +63,13 @@ public class FileInitializationUtil {
 
     public String getDataFilePath(String filename) {
         return Paths.get(baseDataPath, filename).toString();
+    }
+
+    public String getImageUploadPath() {
+        return imageUploadPath;
+    }
+
+    public String getImageUploadPath(String filename) {
+        return Paths.get(imageUploadPath, filename).toString();
     }
 }

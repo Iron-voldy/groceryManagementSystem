@@ -16,17 +16,24 @@
 <div class="product-detail-container">
     <div class="product-detail-left">
         <div class="product-image">
-            <!-- Product image placeholder -->
-            <div class="product-image-placeholder">
-                <c:choose>
-                    <c:when test="${product.category == 'Fresh Products'}">🥩</c:when>
-                    <c:when test="${product.category == 'Dairy'}">🥛</c:when>
-                    <c:when test="${product.category == 'Vegetables'}">🥦</c:when>
-                    <c:when test="${product.category == 'Fruits'}">🍎</c:when>
-                    <c:when test="${product.category == 'Pantry Items'}">🥫</c:when>
-                    <c:otherwise>🛒</c:otherwise>
-                </c:choose>
-            </div>
+            <c:choose>
+                <c:when test="${not empty product.imagePath}">
+                    <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}" class="product-img">
+                </c:when>
+                <c:otherwise>
+                    <!-- Product image placeholder -->
+                    <div class="product-image-placeholder">
+                        <c:choose>
+                            <c:when test="${product.category == 'Fresh Products'}">🥩</c:when>
+                            <c:when test="${product.category == 'Dairy'}">🥛</c:when>
+                            <c:when test="${product.category == 'Vegetables'}">🥦</c:when>
+                            <c:when test="${product.category == 'Fruits'}">🍎</c:when>
+                            <c:when test="${product.category == 'Pantry Items'}">🥫</c:when>
+                            <c:otherwise>🛒</c:otherwise>
+                        </c:choose>
+                    </div>
+                </c:otherwise>
+            </c:choose>
         </div>
     </div>
 
@@ -166,16 +173,23 @@
         <c:forEach var="relatedProduct" items="${relatedProducts}" varStatus="status" end="3">
             <div class="product-card">
                 <div class="product-img">
-                    <div class="product-img-placeholder">
-                        <c:choose>
-                            <c:when test="${relatedProduct.category == 'Fresh Products'}">🥩</c:when>
-                            <c:when test="${relatedProduct.category == 'Dairy'}">🥛</c:when>
-                            <c:when test="${relatedProduct.category == 'Vegetables'}">🥦</c:when>
-                            <c:when test="${relatedProduct.category == 'Fruits'}">🍎</c:when>
-                            <c:when test="${relatedProduct.category == 'Pantry Items'}">🥫</c:when>
-                            <c:otherwise>🛒</c:otherwise>
-                        </c:choose>
-                    </div>
+                    <c:choose>
+                        <c:when test="${not empty relatedProduct.imagePath}">
+                            <img src="${pageContext.request.contextPath}${relatedProduct.imagePath}" alt="${relatedProduct.name}" class="product-img">
+                        </c:when>
+                        <c:otherwise>
+                            <div class="product-img-placeholder">
+                                <c:choose>
+                                    <c:when test="${relatedProduct.category == 'Fresh Products'}">🥩</c:when>
+                                    <c:when test="${relatedProduct.category == 'Dairy'}">🥛</c:when>
+                                    <c:when test="${relatedProduct.category == 'Vegetables'}">🥦</c:when>
+                                    <c:when test="${relatedProduct.category == 'Fruits'}">🍎</c:when>
+                                    <c:when test="${relatedProduct.category == 'Pantry Items'}">🥫</c:when>
+                                    <c:otherwise>🛒</c:otherwise>
+                                </c:choose>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
                 <div class="product-details">
                     <h3 class="product-title">${relatedProduct.name}</h3>
@@ -232,6 +246,12 @@
     align-items: center;
     justify-content: center;
     background-color: var(--dark-surface-hover);
+}
+
+.product-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 .product-image-placeholder {
@@ -519,6 +539,65 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
+}
+
+.product-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--dark-surface);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.product-card .product-img {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-surface-hover);
+}
+
+.product-card .product-img img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.product-card .product-img-placeholder {
+    font-size: 4rem;
+}
+
+.product-card .product-details {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.product-card .product-title {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.product-card .product-category {
+    margin-bottom: 8px;
+}
+
+.product-card .product-price {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.product-card .product-actions {
+    margin-top: auto;
 }
 
 @media (max-width: 768px) {

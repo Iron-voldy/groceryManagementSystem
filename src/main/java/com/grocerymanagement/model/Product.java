@@ -12,6 +12,7 @@ public class Product implements Serializable {
     private BigDecimal price;
     private int stockQuantity;
     private String description;
+    private String imagePath; // New field for image path
     private LocalDateTime lastUpdated;
 
     public Product() {
@@ -42,6 +43,9 @@ public class Product implements Serializable {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
+    // New getter and setter for imagePath
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
     public String toFileString() {
         return String.join("|",
@@ -51,6 +55,7 @@ public class Product implements Serializable {
                 price.toString(),
                 String.valueOf(stockQuantity),
                 description,
+                imagePath != null ? imagePath : "", // Include image path in file serialization
                 lastUpdated.toString()
         );
     }
@@ -64,7 +69,11 @@ public class Product implements Serializable {
         product.price = new BigDecimal(parts[3]);
         product.stockQuantity = Integer.parseInt(parts[4]);
         product.description = parts[5];
-        product.lastUpdated = LocalDateTime.parse(parts[6]);
+        // Handle image path (check if we have enough parts and that it's not empty)
+        if (parts.length > 6 && !parts[6].isEmpty()) {
+            product.imagePath = parts[6];
+        }
+        product.lastUpdated = LocalDateTime.parse(parts[parts.length - 1]);
         return product;
     }
 }

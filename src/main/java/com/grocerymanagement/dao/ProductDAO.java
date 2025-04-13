@@ -11,8 +11,10 @@ import java.util.stream.Collectors;
 
 public class ProductDAO {
     private String productFilePath;
+    private FileInitializationUtil fileInitUtil;
 
     public ProductDAO(FileInitializationUtil fileInitUtil) {
+        this.fileInitUtil = fileInitUtil;
         this.productFilePath = fileInitUtil.getDataFilePath("products.txt");
     }
 
@@ -118,5 +120,9 @@ public class ProductDAO {
                 product.getCategory() != null && !product.getCategory().isEmpty() &&
                 product.getPrice() != null && product.getPrice().compareTo(BigDecimal.ZERO) > 0 &&
                 product.getStockQuantity() >= 0;
+    }
+
+    public String getImageUploadPath(String filename) {
+        return fileInitUtil.getImageUploadPath(filename);
     }
 }
