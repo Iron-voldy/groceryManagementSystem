@@ -1,6 +1,6 @@
 package com.grocerymanagement.config;
 
-import jakarta.servlet.ServletContext;
+import javax.servlet.ServletContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

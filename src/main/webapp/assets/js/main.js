@@ -184,13 +184,19 @@ function triggerInputChange(input) {
 
 // Add to cart functionality
 function addToCart(productId, quantity = 1) {
-    fetch(`${contextPath}/cart/add?productId=${productId}&quantity=${quantity}`, {
+    fetch(`${contextPath}/cart/add`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        },
+        body: `productId=${productId}&quantity=${quantity}`
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('Product added to cart');
@@ -251,30 +257,32 @@ function setRating(rating) {
 }
 
 // Initialize star rating if present
-const starContainer = document.querySelector('.star-rating');
-if (starContainer) {
-    const stars = starContainer.querySelectorAll('.star');
-    stars.forEach((star, index) => {
-        star.addEventListener('click', function() {
-            setRating(index + 1);
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    const starContainer = document.querySelector('.star-rating');
+    if (starContainer) {
+        const stars = starContainer.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+            star.addEventListener('click', function() {
+                setRating(index + 1);
+            });
 
-        star.addEventListener('mouseover', function() {
-            const currentRating = document.getElementById('rating').value;
+            star.addEventListener('mouseover', function() {
+                const currentRating = document.getElementById('rating').value;
 
-            stars.forEach((s, i) => {
-                if (i <= index) {
-                    s.classList.add('hover');
-                } else {
+                stars.forEach((s, i) => {
+                    if (i <= index) {
+                        s.classList.add('hover');
+                    } else {
+                        s.classList.remove('hover');
+                    }
+                });
+            });
+
+            star.addEventListener('mouseout', function() {
+                stars.forEach(s => {
                     s.classList.remove('hover');
-                }
+                });
             });
         });
-
-        star.addEventListener('mouseout', function() {
-            stars.forEach(s => {
-                s.classList.remove('hover');
-            });
-        });
-    });
-}
+    }
+});

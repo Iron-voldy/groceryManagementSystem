@@ -24,7 +24,11 @@
                     <h2 class="profile-name">${sessionScope.user.username}</h2>
                     <p class="profile-email">${sessionScope.user.email}</p>
                     <p class="profile-role">${sessionScope.user.role}</p>
-                    <p class="profile-member-since">Member since: <fmt:formatDate value="${sessionScope.user.registrationDate}" pattern="MMMM yyyy" /></p>
+                    <p class="profile-member-since">Member since:
+                        <c:if test="${not empty sessionScope.user.registrationDate}">
+                            <fmt:formatDate value="${sessionScope.user.registrationDate}" pattern="MMMM yyyy" />
+                        </c:if>
+                    </p>
                 </div>
             </div>
 
