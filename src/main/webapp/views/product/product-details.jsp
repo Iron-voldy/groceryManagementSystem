@@ -116,7 +116,8 @@
                 <c:set target="${ratings}" property="${review.rating}" value="${ratings[review.rating] + 1}" />
             </c:forEach>
 
-            <c:forEach begin="5" end="1" step="-1" var="rating">
+            <!-- Fix: Use normal forEach and an array of rating values instead of a negative step -->
+            <c:forEach var="rating" items="5,4,3,2,1">
                 <div class="rating-bar">
                     <span class="rating-label">${rating} Stars</span>
                     <div class="progress-bar">

@@ -2,7 +2,9 @@ package com.grocerymanagement.servlet;
 
 import com.grocerymanagement.config.FileInitializationUtil;
 import com.grocerymanagement.dao.ProductDAO;
+import com.grocerymanagement.dao.ReviewDAO;
 import com.grocerymanagement.model.Product;
+import com.grocerymanagement.model.Review;
 import com.grocerymanagement.model.User;
 import javax.servlet.ServletException;
 
@@ -24,6 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @WebServlet("/product/*")
 @MultipartConfig(
@@ -317,11 +320,103 @@ public class ProductServlet extends HttpServlet {
         Optional<Product> productOptional = productDAO.getProductById(productId);
 
         if (productOptional.isPresent()) {
-            request.setAttribute("product", productOptional.get());
+            Product product = productOptional.get();
+            request.setAttribute("product", product);
+
+            // Check if JSON format is requested (for admin panel AJAX)
+            String format = request.getParameter("format");
+            if ("json".equalsIgnoreCase(format)) {
+                response.setContentType("application/json");
+
+                // Create a simple JSON response with product data
+                // In a real app, you might use a JSON library like Gson or Jackson
+                StringBuilder json = new StringBuilder();
+                json.append("{");
+                json.append("\"productId\":\"").append(product.getProductId()).append("\",");
+                json.append("\"name\":\"").append(escapeJsonString(product.getName())).append("\",");
+                json.append("\"category\":\"").append(escapeJsonString(product.getCategory())).append("\",");
+                json.append("\"price\":").append(product.getPrice()).append(",");
+                json.append("\"stockQuantity\":").append(product.getStockQuantity()).append(",");
+                json.append("\"description\":\"").append(escapeJsonString(product.getDescription())).append("\"");
+
+                if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
+                    json.append(",\"imagePath\":\"").append(escapeJsonString(product.getImagePath())).append("\"");
+                }
+
+                json.append("}");
+
+                response.getWriter().write(json.toString());
+                return;
+            }
+
+            // For web view, try to get related products in the same category
+            List<Product> relatedProducts = productDAO.getProductsByCategory(product.getCategory())
+                    .stream()
+                    .filter(p -> !p.getProductId().equals(product.getProductId()))
+                    .limit(4)
+                    .collect(Collectors.toList());
+
+            request.setAttribute("relatedProducts", relatedProducts);
+
+            // Try to get reviews for this product if ReviewDAO is available
+            try {
+                ReviewDAO reviewDAO = new ReviewDAO(fileInitUtil);
+                List<Review> reviews = reviewDAO.getReviewsByProductId(productId)
+                        .stream()
+                        .filter(review -> review.getStatus() == Review.ReviewStatus.APPROVED)
+                        .collect(Collectors.toList());
+
+                double averageRating = reviewDAO.calculateAverageRatingForProduct(productId);
+
+                request.setAttribute("reviews", reviews);
+                request.setAttribute("averageRating", averageRating);
+            } catch (Exception e) {
+                // Log error but continue - reviews are optional
+                System.err.println("Error loading reviews: " + e.getMessage());
+            }
+
             request.getRequestDispatcher("/views/product/product-details.jsp").forward(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
         }
+    }
+
+    // Helper method to escape JSON strings
+    private String escapeJsonString(String input) {
+        if (input == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+            switch (ch) {
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(ch);
+            }
+        }
+        return sb.toString();
     }
 
     private boolean isAdminUser(HttpSession session) {

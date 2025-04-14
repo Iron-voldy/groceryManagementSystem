@@ -10,7 +10,7 @@
     <div class="page-header">
         <h1 class="page-title">Add New Product</h1>
         <div class="page-actions">
-            <a href="${pageContext.request.contextPath}/product/list" class="btn btn-secondary">
+            <a href="${pageContext.request.contextPath}/views/admin/products.jsp" class="btn btn-secondary">
                 <i class="fas fa-arrow-left">←</i> Back to Products
             </a>
         </div>

@@ -1,6 +1,24 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page import="com.grocerymanagement.config.FileInitializationUtil" %>
+<%@ page import="com.grocerymanagement.dao.ProductDAO" %>
+<%@ page import="com.grocerymanagement.model.Product" %>
+<%@ page import="java.util.Optional" %>
+
+<%
+    // Get product ID from request parameter
+    String productId = request.getParameter("productId");
+
+    // Load product details
+    FileInitializationUtil fileInitUtil = new FileInitializationUtil(application);
+    ProductDAO productDAO = new ProductDAO(fileInitUtil);
+    Optional<Product> productOptional = productDAO.getProductById(productId);
+
+    if (productOptional.isPresent()) {
+        request.setAttribute("product", productOptional.get());
+    }
+%>
 
 <jsp:include page="/views/common/admin-header.jsp">
     <jsp:param name="title" value="Edit Product" />

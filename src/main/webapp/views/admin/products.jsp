@@ -1,6 +1,23 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page import="com.grocerymanagement.config.FileInitializationUtil" %>
+<%@ page import="com.grocerymanagement.dao.ProductDAO" %>
+<%@ page import="com.grocerymanagement.model.Product" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+
+<%
+    // Load products directly in the JSP
+    FileInitializationUtil fileInitUtil = new FileInitializationUtil(application);
+    ProductDAO productDAO = new ProductDAO(fileInitUtil);
+    List<Product> products = productDAO.getAllProducts();
+    request.setAttribute("products", products);
+    request.setAttribute("totalProducts", products.size());
+
+    // Add a formatter for LocalDateTime
+    request.setAttribute("dateFormatter", DateTimeFormatter.ofPattern("MMM d, yyyy"));
+%>
 
 <jsp:include page="/views/common/admin-header.jsp">
     <jsp:param name="title" value="Manage Products" />
@@ -113,8 +130,8 @@
                                 ${product.stockQuantity}
                             </span>
                         </td>
-                        <td data-date="${product.lastUpdated.getTime()}">
-                            <fmt:formatDate value="${product.lastUpdated}" pattern="MMM d, yyyy" />
+                        <td data-date="${product.lastUpdated.format(dateFormatter)}">
+                            ${product.lastUpdated.format(dateFormatter)}
                         </td>
                         <td>
                             <div class="action-buttons">
@@ -128,16 +145,6 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Pagination -->
-    <c:if test="${totalPages > 1}">
-        <div class="pagination">
-            <c:forEach begin="1" end="${totalPages}" var="pageNum">
-                <a href="${pageContext.request.contextPath}/product/list?page=${pageNum}${not empty param.searchTerm ? '&searchTerm='.concat(param.searchTerm) : ''}${not empty param.category ? '&category='.concat(param.category) : ''}${not empty param.stock ? '&stock='.concat(param.stock) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}"
-                   class="${currentPage == pageNum ? 'active' : ''}">${pageNum}</a>
-            </c:forEach>
-        </div>
-    </c:if>
 
     <!-- Add/Edit Product Modal -->
     <div id="product-modal" class="modal">
@@ -402,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const productId = this.closest('tr').getAttribute('data-id');
 
             // Fetch product details and populate form
-            fetch(`${pageContext.request.contextPath}/product/details?productId=${productId}&format=json`)
+            fetch(`${contextPath}/product/details?productId=${productId}&format=json`)
             .then(response => response.json())
             .then(product => {
                 document.getElementById('product-id').value = product.productId;

@@ -18,11 +18,22 @@ import java.util.stream.Collectors;
 @WebServlet("/home")
 public class HomeServlet extends HttpServlet {
     private ProductDAO productDAO;
+    private FileInitializationUtil fileInitUtil;
 
     @Override
     public void init() throws ServletException {
-        FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
+        fileInitUtil = new FileInitializationUtil(getServletContext());
         productDAO = new ProductDAO(fileInitUtil);
+
+        // Ensure data directory and files are initialized
+        ensureDirectoriesAndFiles();
+    }
+
+    private void ensureDirectoriesAndFiles() {
+        // Ensure product file exists and has at least one product
+        if (productDAO.getAllProducts().isEmpty()) {
+            createDefaultProducts();
+        }
     }
 
     @Override
@@ -37,18 +48,24 @@ public class HomeServlet extends HttpServlet {
                     .collect(Collectors.toList());
         } catch (Exception e) {
             // Log the error or handle it appropriately
+            System.err.println("Error loading products: " + e.getMessage());
             featuredProducts = createDefaultFeaturedProducts();
         }
 
         // If no products found in database, use default products
         if (featuredProducts.isEmpty()) {
             featuredProducts = createDefaultFeaturedProducts();
+
+            // Save these default products to the database
+            for (Product product : featuredProducts) {
+                productDAO.createProduct(product);
+            }
         }
 
         request.setAttribute("featuredProducts", featuredProducts);
 
         // Direct rendering instead of forwarding
-        request.getRequestDispatcher("/WEB-INF/views/index.jsp").forward(request, response);
+        request.getRequestDispatcher("/index.jsp").forward(request, response);
     }
 
     private List<Product> createDefaultFeaturedProducts() {
@@ -92,5 +109,47 @@ public class HomeServlet extends HttpServlet {
         defaultProducts.add(breadProduct);
 
         return defaultProducts;
+    }
+
+    private void createDefaultProducts() {
+        List<Product> defaultProducts = createDefaultFeaturedProducts();
+
+        // Add some more variety
+        Product bananas = new Product();
+        bananas.setName("Organic Bananas");
+        bananas.setCategory("Fruits");
+        bananas.setPrice(BigDecimal.valueOf(1.49));
+        bananas.setStockQuantity(60);
+        bananas.setDescription("Sweet, ripe organic bananas sourced from sustainable farms.");
+        defaultProducts.add(bananas);
+
+        Product eggs = new Product();
+        eggs.setName("Free-Range Eggs");
+        eggs.setCategory("Fresh Products");
+        eggs.setPrice(BigDecimal.valueOf(4.99));
+        eggs.setStockQuantity(40);
+        eggs.setDescription("Farm-fresh free-range eggs from cage-free hens.");
+        defaultProducts.add(eggs);
+
+        Product cheese = new Product();
+        cheese.setName("Cheddar Cheese");
+        cheese.setCategory("Dairy");
+        cheese.setPrice(BigDecimal.valueOf(3.99));
+        cheese.setStockQuantity(35);
+        cheese.setDescription("Premium aged cheddar cheese, perfect for sandwiches and snacking.");
+        defaultProducts.add(cheese);
+
+        Product rice = new Product();
+        rice.setName("Organic Brown Rice");
+        rice.setCategory("Pantry Items");
+        rice.setPrice(BigDecimal.valueOf(5.99));
+        rice.setStockQuantity(45);
+        rice.setDescription("Nutritious organic brown rice, a wholesome addition to any meal.");
+        defaultProducts.add(rice);
+
+        // Save all default products
+        for (Product product : defaultProducts) {
+            productDAO.createProduct(product);
+        }
     }
 }
