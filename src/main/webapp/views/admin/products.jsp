@@ -90,7 +90,6 @@
                         <input type="checkbox" id="select-all">
                     </th>
                     <th data-sort="id">ID</th>
-                    <th width="80">Image</th>
                     <th data-sort="name" data-default-sort="asc">Product Name</th>
                     <th data-sort="category">Category</th>
                     <th data-sort="price">Price</th>
@@ -106,25 +105,6 @@
                             <input type="checkbox" name="selected-items" value="${product.productId}">
                         </td>
                         <td>${product.productId.substring(0, 8)}</td>
-                        <td class="product-thumbnail">
-                            <c:choose>
-                                <c:when test="${not empty product.imagePath}">
-                                    <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}" class="product-thumb">
-                                </c:when>
-                                <c:otherwise>
-                                    <div class="product-thumb-placeholder">
-                                        <c:choose>
-                                            <c:when test="${product.category == 'Fresh Products'}">🥩</c:when>
-                                            <c:when test="${product.category == 'Dairy'}">🥛</c:when>
-                                            <c:when test="${product.category == 'Vegetables'}">🥦</c:when>
-                                            <c:when test="${product.category == 'Fruits'}">🍎</c:when>
-                                            <c:when test="${product.category == 'Pantry Items'}">🥫</c:when>
-                                            <c:otherwise>🛒</c:otherwise>
-                                        </c:choose>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
-                        </td>
                         <td>${product.name}</td>
                         <td>${product.category}</td>
                         <td data-price="${product.price}">$<fmt:formatNumber value="${product.price}" pattern="#,##0.00"/></td>
@@ -167,7 +147,7 @@
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="product-form" action="${pageContext.request.contextPath}/product/add" method="post" data-validate="true" enctype="multipart/form-data">
+                <form id="product-form" action="${pageContext.request.contextPath}/product/add" method="post" data-validate="true">
                     <input type="hidden" id="product-id" name="productId">
 
                     <div class="form-group">
@@ -202,16 +182,6 @@
                     <div class="form-group">
                         <label for="description">Description</label>
                         <textarea id="description" name="description" rows="4" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="productImage">Product Image</label>
-                        <input type="file" id="productImage" name="productImage" accept="image/*">
-                        <small class="form-text">Upload an image of the product (JPG, PNG, GIF). Max size: 10MB</small>
-                    </div>
-
-                    <div class="image-preview-container">
-                        <div id="imagePreview" class="image-preview"></div>
                     </div>
 
                     <div class="form-actions">
@@ -310,31 +280,6 @@
     gap: 5px;
 }
 
-/* Product Thumbnail */
-.product-thumbnail {
-    text-align: center;
-}
-
-.product-thumb {
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
-    border-radius: var(--border-radius);
-    background-color: var(--dark-surface-hover);
-}
-
-.product-thumb-placeholder {
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--dark-surface-hover);
-    border-radius: var(--border-radius);
-    font-size: 1.5rem;
-    margin: 0 auto;
-}
-
 /* Modal Styles */
 .modal {
     display: none;
@@ -397,90 +342,25 @@
     padding: 20px;
 }
 
-.image-preview-container {
-    margin-top: 15px;
-    margin-bottom: 20px;
-}
-
-.image-preview {
-    width: 150px;
-    height: 150px;
-    border: 2px dashed #333;
-    border-radius: var(--border-radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--dark-surface-hover);
-    color: var(--light-text);
-    overflow: hidden;
-}
-
-.image-preview img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-    .nav-links {
-        display: none;
-        position: absolute;
-        top: 60px;
-        left: 0;
-        width: 100%;
-        background-color: var(--darker-bg);
+    .filter-row, .bulk-actions {
         flex-direction: column;
-        padding: 20px;
     }
 
-    .show-menu .nav-links {
-        display: flex;
+    .filter-group, .bulk-action-group {
+        width: 100%;
     }
 
-    .menu-toggle {
-        display: block;
-    }
-
-    .hide-on-mobile {
-        display: none;
-    }
-
-    .sidebar {
-        transform: translateX(-100%);
-        z-index: 1001;
-    }
-
-    .sidebar.show {
-        transform: translateX(0);
-    }
-
-    .admin-content {
-        margin-left: 0;
-    }
-
-    .toggle-sidebar {
-        display: block;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1002;
-        background-color: var(--primary);
-        color: white;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    .action-buttons {
+        flex-wrap: wrap;
     }
 }
 </style>
 
 <script>
+// Show/hide modal
 document.addEventListener('DOMContentLoaded', function() {
-    // Show/hide modal
     const modal = document.getElementById('product-modal');
     const addButton = document.querySelector('.page-actions .btn-primary');
     const closeButtons = document.querySelectorAll('.close-modal');
@@ -494,12 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('product-id').value = '';
             document.getElementById('modal-title').textContent = 'Add New Product';
             document.getElementById('product-form').action = '${pageContext.request.contextPath}/product/add';
-
-            // Clear image preview
-            const imagePreview = document.getElementById('imagePreview');
-            if (imagePreview) {
-                imagePreview.innerHTML = 'No image selected';
-            }
 
             // Show modal
             modal.style.display = 'block';
@@ -538,16 +412,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('stockQuantity').value = product.stockQuantity;
                 document.getElementById('description').value = product.description;
 
-                // Show current image if available
-                const imagePreview = document.getElementById('imagePreview');
-                if (imagePreview) {
-                    if (product.imagePath) {
-                        imagePreview.innerHTML = `<img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}">`;
-                    } else {
-                        imagePreview.innerHTML = 'No image available';
-                    }
-                }
-
                 document.getElementById('modal-title').textContent = 'Edit Product';
                 document.getElementById('product-form').action = '${pageContext.request.contextPath}/product/update';
 
@@ -571,29 +435,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
-    // Image preview for product modal
-    const productImageInput = document.getElementById('productImage');
-    const imagePreview = document.getElementById('imagePreview');
-
-    if (productImageInput && imagePreview) {
-        productImageInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    imagePreview.innerHTML = '';
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    imagePreview.appendChild(img);
-                };
-
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                imagePreview.innerHTML = 'No image selected';
-            }
-        });
-    }
 });
 </script>
 

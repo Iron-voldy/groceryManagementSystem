@@ -72,7 +72,8 @@ public class ProductServlet extends HttpServlet {
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid request");
+            // Redirect to list products when no specific path is specified
+            response.sendRedirect(request.getContextPath() + "/product/list");
             return;
         }
 
@@ -146,7 +147,7 @@ public class ProductServlet extends HttpServlet {
 
             if (productDAO.createProduct(newProduct)) {
                 request.setAttribute("success", "Product added successfully");
-                response.sendRedirect(request.getContextPath() + "/product/list");
+                response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
             } else {
                 request.setAttribute("error", "Failed to add product");
                 request.getRequestDispatcher("/views/product/add-product.jsp").forward(request, response);
@@ -225,7 +226,7 @@ public class ProductServlet extends HttpServlet {
 
             if (productDAO.updateProduct(product)) {
                 request.setAttribute("success", "Product updated successfully");
-                response.sendRedirect(request.getContextPath() + "/product/list");
+                response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
             } else {
                 request.setAttribute("error", "Failed to update product");
                 request.getRequestDispatcher("/views/product/product-edit.jsp").forward(request, response);
@@ -260,22 +261,36 @@ public class ProductServlet extends HttpServlet {
                 }
 
                 request.setAttribute("success", "Product deleted successfully");
-                response.sendRedirect(request.getContextPath() + "/product/list");
+                response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
             } else {
                 request.setAttribute("error", "Failed to delete product");
-                request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+                response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
             }
         } else {
             request.setAttribute("error", "Product not found");
-            request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
         }
     }
 
     private void listProducts(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Get all products
         List<Product> products = productDAO.getAllProducts();
+
+        // Set products as request attribute
         request.setAttribute("products", products);
-        request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+        request.setAttribute("totalProducts", products.size()); // For pagination info
+
+        // Check if request is coming from admin area
+        String referer = request.getHeader("Referer");
+        boolean isAdminRequest = referer != null && referer.contains("/admin/");
+
+        // Forward to admin or customer product page based on context
+        if (isAdminRequest || isAdminUser(request.getSession(false))) {
+            request.getRequestDispatcher("/views/admin/products.jsp").forward(request, response);
+        } else {
+            request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+        }
     }
 
     private void searchProducts(HttpServletRequest request, HttpServletResponse response)
