@@ -1,6 +1,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="com.grocerymanagement.model.Review" %>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="My Reviews" />
@@ -11,7 +13,7 @@
     <h1 class="page-title">My Reviews</h1>
 
     <c:choose>
-        <c:when test="${not empty reviews}">
+        <c:when test="${not empty reviews and reviews.size() > 0}">
             <div class="reviews-grid">
                 <c:forEach var="review" items="${reviews}">
                     <div class="review-card">
@@ -57,7 +59,13 @@
 
                         <div class="review-footer">
                             <div class="review-date">
-                                <fmt:formatDate value="${review.reviewDate}" pattern="MMMM d, yyyy" />
+                                <%
+                                    Review currentReview = (Review)pageContext.getAttribute("review");
+                                    if (currentReview != null && currentReview.getReviewDate() != null) {
+                                        out.print(currentReview.getReviewDate().format(
+                                            java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy")));
+                                    }
+                                %>
                             </div>
                             <div class="review-actions">
                                 <a href="${pageContext.request.contextPath}/review/details?reviewId=${review.reviewId}"

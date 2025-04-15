@@ -98,6 +98,9 @@ public class ReviewServlet extends HttpServlet {
                 case "/moderate":
                     moderateReview(request, response);
                     break;
+                case "/delete":  // Add support for POST delete
+                    deleteReview(request, response);
+                    break;
                 default:
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -131,7 +134,7 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
     }
 
-    // Method to submit a new review - FIXED VERSION
+    // Method to submit a new review
     private void createReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -281,7 +284,8 @@ public class ReviewServlet extends HttpServlet {
 
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Review not found");
+            request.setAttribute("error", "Review not found");
+            request.getRequestDispatcher("/views/review/user-reviews.jsp").forward(request, response);
             return;
         }
 
@@ -302,26 +306,56 @@ public class ReviewServlet extends HttpServlet {
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid rating. Please provide a rating between 1 and 5");
-            showEditReviewForm(request, response);
+            request.setAttribute("review", review);
+
+            // Get product for display
+            Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
+            if (productOptional.isPresent()) {
+                request.setAttribute("product", productOptional.get());
+            }
+
+            request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
             return;
         }
 
-        // Update review
-        review.setRating(rating);
-        review.setReviewText(reviewText);
+        try {
+            // Update review
+            review.setRating(rating);
+            review.setReviewText(reviewText);
 
-        // If not admin, set back to pending for re-moderation
-        if (currentUser.getRole() != User.UserRole.ADMIN &&
-                review.getStatus() != Review.ReviewStatus.APPROVED) {
-            review.setStatus(Review.ReviewStatus.PENDING);
-        }
+            // If not admin, set back to pending for re-moderation
+            if (currentUser.getRole() != User.UserRole.ADMIN &&
+                    review.getStatus() == Review.ReviewStatus.APPROVED) {
+                review.setStatus(Review.ReviewStatus.PENDING);
+            }
 
-        if (reviewDAO.updateReview(review)) {
-            request.setAttribute("success", "Review updated successfully");
-            response.sendRedirect(request.getContextPath() + "/review/details?reviewId=" + reviewId);
-        } else {
-            request.setAttribute("error", "Failed to update review. Please try again.");
-            showEditReviewForm(request, response);
+            if (reviewDAO.updateReview(review)) {
+                request.setAttribute("success", "Review updated successfully");
+                response.sendRedirect(request.getContextPath() + "/review/details?reviewId=" + reviewId);
+            } else {
+                request.setAttribute("error", "Failed to update review. Please try again.");
+
+                // Get product for display
+                Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
+                if (productOptional.isPresent()) {
+                    request.setAttribute("product", productOptional.get());
+                }
+
+                request.setAttribute("review", review);
+                request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "An error occurred: " + e.getMessage());
+
+            // Get product for display
+            Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
+            if (productOptional.isPresent()) {
+                request.setAttribute("product", productOptional.get());
+            }
+
+            request.setAttribute("review", review);
+            request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
         }
     }
 
@@ -344,7 +378,8 @@ public class ReviewServlet extends HttpServlet {
 
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Review not found");
+            // Forward to the edit page which will handle the null review case
+            request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
             return;
         }
 
@@ -357,18 +392,21 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
+        // Get product info
         Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
-        if (!productOptional.isPresent()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
-            return;
+
+        // Set review attribute regardless of product availability
+        request.setAttribute("review", review);
+
+        if (productOptional.isPresent()) {
+            request.setAttribute("product", productOptional.get());
         }
 
-        request.setAttribute("review", review);
-        request.setAttribute("product", productOptional.get());
         request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
     }
 
     // Method to delete a review
+    // Method to delete a review - supports both GET and POST methods
     private void deleteReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -380,22 +418,28 @@ public class ReviewServlet extends HttpServlet {
         User currentUser = (User) session.getAttribute("user");
         String reviewId = request.getParameter("reviewId");
 
-        if (reviewId == null || reviewId.isEmpty()) {
-            // Return JSON response for AJAX calls
+        // Log the incoming request for debugging
+        System.out.println("Delete review request received: reviewId=" + reviewId);
+
+        // Handle missing review ID
+        if (reviewId == null || reviewId.trim().isEmpty()) {
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "Review ID is required");
             } else {
+                request.setAttribute("error", "Review ID is required");
                 response.sendRedirect(request.getContextPath() + "/review/user");
             }
             return;
         }
 
+        // Attempt to find the review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "Review not found");
             } else {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Review not found");
+                request.setAttribute("error", "Review not found");
+                response.sendRedirect(request.getContextPath() + "/review/user");
             }
             return;
         }
@@ -408,23 +452,37 @@ public class ReviewServlet extends HttpServlet {
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "You are not authorized to delete this review");
             } else {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "You are not authorized to delete this review");
+                request.setAttribute("error", "You are not authorized to delete this review");
+                response.sendRedirect(request.getContextPath() + "/review/user");
             }
             return;
         }
 
-        if (reviewDAO.deleteReview(reviewId)) {
-            if (isAjaxRequest(request)) {
-                sendJsonResponse(response, true, "Review deleted successfully");
+        // Attempt to delete the review
+        try {
+            boolean success = reviewDAO.deleteReview(reviewId);
+            if (success) {
+                if (isAjaxRequest(request)) {
+                    sendJsonResponse(response, true, "Review deleted successfully");
+                } else {
+                    request.getSession().setAttribute("success", "Review deleted successfully");
+                    response.sendRedirect(request.getContextPath() + "/review/user");
+                }
             } else {
-                request.setAttribute("success", "Review deleted successfully");
-                response.sendRedirect(request.getContextPath() + "/review/user");
+                if (isAjaxRequest(request)) {
+                    sendJsonResponse(response, false, "Failed to delete review");
+                } else {
+                    request.getSession().setAttribute("error", "Failed to delete review");
+                    response.sendRedirect(request.getContextPath() + "/review/user");
+                }
             }
-        } else {
+        } catch (Exception e) {
+            System.err.println("Error deleting review: " + e.getMessage());
+            e.printStackTrace();
             if (isAjaxRequest(request)) {
-                sendJsonResponse(response, false, "Failed to delete review");
+                sendJsonResponse(response, false, "Error processing your request: " + e.getMessage());
             } else {
-                request.setAttribute("error", "Failed to delete review");
+                request.getSession().setAttribute("error", "Error processing your request: " + e.getMessage());
                 response.sendRedirect(request.getContextPath() + "/review/user");
             }
         }
@@ -490,18 +548,22 @@ public class ReviewServlet extends HttpServlet {
 
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Review not found");
+            // Set null attributes so the JSP can handle the error case
+            request.setAttribute("review", null);
+            request.getRequestDispatcher("/views/review/review-details.jsp").forward(request, response);
             return;
         }
 
         Review review = reviewOptional.get();
         Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
 
+        // Always set the review attribute
+        request.setAttribute("review", review);
+
         if (productOptional.isPresent()) {
             request.setAttribute("product", productOptional.get());
         }
 
-        request.setAttribute("review", review);
         request.getRequestDispatcher("/views/review/review-details.jsp").forward(request, response);
     }
 

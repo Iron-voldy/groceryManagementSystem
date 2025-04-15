@@ -2,6 +2,7 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="com.grocerymanagement.model.Review" %>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="Review Details" />
@@ -11,85 +12,107 @@
 <div class="review-details-container">
     <div class="review-header">
         <h1 class="page-title">Review Details</h1>
-        <div class="review-status-badge
-            ${review.status eq 'PENDING' ? 'status-pending' :
-              review.status eq 'APPROVED' ? 'status-approved' :
-              'status-rejected'}">
-            ${review.status}
-        </div>
+        <c:if test="${not empty review}">
+            <div class="review-status-badge
+                ${review.status eq 'PENDING' ? 'status-pending' :
+                review.status eq 'APPROVED' ? 'status-approved' :
+                'status-rejected'}">
+                ${review.status}
+            </div>
+        </c:if>
     </div>
 
-    <div class="review-content-wrapper">
-        <div class="product-section">
-            <c:if test="${not empty product}">
-                <div class="product-card">
-                    <div class="product-image">
-                        <c:choose>
-                            <c:when test="${not empty product.imagePath}">
-                                <img src="${pageContext.request.contextPath}${product.imagePath}"
-                                     alt="${product.name}">
-                            </c:when>
-                            <c:otherwise>
-                                <div class="placeholder-image">🛒</div>
-                            </c:otherwise>
-                        </c:choose>
+    <c:choose>
+        <c:when test="${not empty review}">
+            <div class="review-content-wrapper">
+                <div class="product-section">
+                    <c:if test="${not empty product}">
+                        <div class="product-card">
+                            <div class="product-image">
+                                <c:choose>
+                                    <c:when test="${not empty product.imagePath}">
+                                        <img src="${pageContext.request.contextPath}${product.imagePath}"
+                                            alt="${product.name}">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="placeholder-image">🛒</div>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                            <div class="product-details">
+                                <h2 class="product-name">${product.name}</h2>
+                                <p class="product-category">${product.category}</p>
+                                <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}"
+                                class="btn btn-sm btn-secondary">View Product</a>
+                            </div>
+                        </div>
+                    </c:if>
+                </div>
+
+                <div class="review-details-section">
+                    <div class="review-meta">
+                        <div class="review-rating">
+                            <c:forEach begin="1" end="5" var="star">
+                                <span class="star ${star <= review.rating ? 'filled' : ''}">★</span>
+                            </c:forEach>
+                            <span class="rating-text">${review.rating}/5 Rating</span>
+                        </div>
+                        <div class="review-date">
+                            <c:if test="${not empty review.reviewDate}">
+                                <%
+                                    Review currentReview = (Review)request.getAttribute("review");
+                                    if (currentReview != null && currentReview.getReviewDate() != null) {
+                                        out.print(currentReview.getReviewDate().format(
+                                            java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a")));
+                                    }
+                                %>
+                            </c:if>
+                        </div>
                     </div>
-                    <div class="product-details">
-                        <h2 class="product-name">${product.name}</h2>
-                        <p class="product-category">${product.category}</p>
-                        <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}"
-                           class="btn btn-sm btn-secondary">View Product</a>
+
+                    <div class="review-text-container">
+                        <p class="review-text">${review.reviewText}</p>
+                    </div>
+
+                    <div class="review-actions">
+                        <c:if test="${sessionScope.user.userId eq review.userId}">
+                            <div class="user-review-actions">
+                                <a href="${pageContext.request.contextPath}/review/edit?reviewId=${review.reviewId}"
+                                class="btn btn-sm btn-secondary">Edit Review</a>
+                                <a href="#"
+                                class="btn btn-sm btn-danger delete-review"
+                                data-review-id="${review.reviewId}">Delete Review</a>
+                            </div>
+                        </c:if>
+
+                        <c:if test="${sessionScope.user.role eq 'ADMIN' and review.status eq 'PENDING'}">
+                            <div class="admin-review-actions">
+                                <form action="${pageContext.request.contextPath}/review/moderate" method="post" class="d-inline">
+                                    <input type="hidden" name="reviewId" value="${review.reviewId}">
+                                    <input type="hidden" name="status" value="APPROVED">
+                                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                </form>
+                                <form action="${pageContext.request.contextPath}/review/moderate" method="post" class="d-inline">
+                                    <input type="hidden" name="reviewId" value="${review.reviewId}">
+                                    <input type="hidden" name="status" value="REJECTED">
+                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                </form>
+                            </div>
+                        </c:if>
                     </div>
                 </div>
-            </c:if>
-        </div>
-
-        <div class="review-details-section">
-            <div class="review-meta">
-                <div class="review-rating">
-                    <c:forEach begin="1" end="5" var="star">
-                        <span class="star ${star <= review.rating ? 'filled' : ''}">★</span>
-                    </c:forEach>
-                    <span class="rating-text">${review.rating}/5 Rating</span>
-                </div>
-                <div class="review-date">
-                    <%= ((com.grocerymanagement.model.Review)pageContext.getAttribute("review"))
-                        .getReviewDate().format(java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a")) %>
+            </div>
+        </c:when>
+        <c:otherwise>
+            <div class="not-found-message">
+                <p>Review not found or has been deleted.</p>
+                <div class="action-links">
+                    <a href="${pageContext.request.contextPath}/review/user" class="btn btn-primary">My Reviews</a>
+                    <a href="${pageContext.request.contextPath}/product/list" class="btn btn-secondary">Browse Products</a>
                 </div>
             </div>
-
-            <div class="review-text-container">
-                <p class="review-text">${review.reviewText}</p>
-            </div>
-
-            <div class="review-actions">
-                <c:if test="${sessionScope.user.userId eq review.userId}">
-                    <div class="user-review-actions">
-                        <a href="${pageContext.request.contextPath}/review/edit?reviewId=${review.reviewId}"
-                           class="btn btn-sm btn-secondary">Edit Review</a>
-                        <a href="#"
-                           class="btn btn-sm btn-danger delete-review"
-                           data-review-id="${review.reviewId}">Delete Review</a>
-                    </div>
-                </c:if>
-
-                <c:if test="${sessionScope.user.role eq 'ADMIN' and review.status eq 'PENDING'}">
-                    <div class="admin-review-actions">
-                        <form action="${pageContext.request.contextPath}/review/moderate" method="post" class="d-inline">
-                            <input type="hidden" name="reviewId" value="${review.reviewId}">
-                            <input type="hidden" name="status" value="APPROVED">
-                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                        </form>
-                        <form action="${pageContext.request.contextPath}/review/moderate" method="post" class="d-inline">
-                            <input type="hidden" name="reviewId" value="${review.reviewId}">
-                            <input type="hidden" name="status" value="REJECTED">
-                            <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                        </form>
-                    </div>
-                </c:if>
-            </div>
-        </div>
-    </div>
+        </c:otherwise>
+    </c:choose>
 </div>
 
 <style>
@@ -221,6 +244,23 @@
     gap: 10px;
 }
 
+.not-found-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.not-found-message p {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: var(--light-text);
+}
+
+.action-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
 @media (max-width: 768px) {
     .review-content-wrapper {
         flex-direction: column;
@@ -236,6 +276,7 @@
 }
 </style>
 
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Delete review confirmation
@@ -245,29 +286,30 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const reviewId = this.getAttribute('data-review-id');
 
+            if (!reviewId) {
+                showNotification('Error: Review ID is missing', 'error');
+                return;
+            }
+
             if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-                fetch(`${contextPath}/review/delete?reviewId=${reviewId}`, {
-                    method: 'GET'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Review deleted successfully');
-                        // Redirect to user reviews or another appropriate page
-                        window.location.href = `${contextPath}/review/user`;
-                    } else {
-                        showNotification(data.message || 'Failed to delete review', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('An error occurred. Please try again.', 'error');
-                });
+                // Use direct form submission instead of redirection to ensure proper handling
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `${contextPath}/review/delete`;
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'reviewId';
+                idInput.value = reviewId;
+
+                form.appendChild(idInput);
+                document.body.appendChild(form);
+                form.submit();
             }
         });
     });
 
-    // Notification function (assuming it's defined in main.js)
+    // Notification function
     function showNotification(message, type = 'success') {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
