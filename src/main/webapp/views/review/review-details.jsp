@@ -79,9 +79,8 @@
                             <div class="user-review-actions">
                                 <a href="${pageContext.request.contextPath}/review/edit?reviewId=${review.reviewId}"
                                 class="btn btn-sm btn-secondary">Edit Review</a>
-                                <a href="#"
-                                class="btn btn-sm btn-danger delete-review"
-                                data-review-id="${review.reviewId}">Delete Review</a>
+                                <button type="button" class="btn btn-sm btn-danger delete-review-btn"
+                                        data-review-id="${review.reviewId}">Delete Review</button>
                             </div>
                         </c:if>
 
@@ -261,6 +260,10 @@
     gap: 15px;
 }
 
+.d-inline {
+    display: inline-block;
+}
+
 @media (max-width: 768px) {
     .review-content-wrapper {
         flex-direction: column;
@@ -276,62 +279,126 @@
 }
 </style>
 
+<div id="confirmationModal" class="modal">
+    <div class="modal-content">
+        <h3>Confirm Deletion</h3>
+        <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button id="confirmDelete" class="btn btn-danger">Delete</button>
+            <button id="cancelDelete" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: var(--dark-surface);
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    max-width: 500px;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    color: var(--dark-text);
+}
+
+.modal-content p {
+    margin-bottom: 30px;
+    color: var(--light-text);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Delete review confirmation
-    const deleteReviewButtons = document.querySelectorAll('.delete-review');
-    deleteReviewButtons.forEach(button => {
+    // Delete review with confirmation
+    const deleteButtons = document.querySelectorAll('.delete-review-btn');
+    const modal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    const cancelDeleteBtn = document.getElementById('cancelDelete');
+    let currentReviewId = null;
+
+    deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const reviewId = this.getAttribute('data-review-id');
-            const reviewCard = this.closest('.review-card');
-
-            if (!reviewId) {
-                showNotification('Error: Review ID is missing', 'error');
-                return;
-            }
-
-            if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-                // Use fetch for AJAX request
-                fetch(`${contextPath}/review/delete`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: new URLSearchParams({
-                        reviewId: reviewId
-                    })
-                })
-                .then(response => {
-                    // Check if response is OK
-                    if (!response.ok) {
-                        // Try to parse error response
-                        return response.text().then(text => {
-                            console.error('Error response:', text);
-                            throw new Error('Network response was not ok: ' + text);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        // Remove the review row from the DOM
-                        if (reviewCard) {
-                            reviewCard.remove();
-                        }
-                    } else {
-                        showNotification(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('An error occurred while deleting the review', 'error');
-                });
-            }
+            currentReviewId = this.getAttribute('data-review-id');
+            modal.style.display = 'block';
         });
+    });
+
+    confirmDeleteBtn.addEventListener('click', function() {
+        if (currentReviewId) {
+            // Make sure to include the full contextPath
+            const fullUrl = '${pageContext.request.contextPath}/review/delete';
+            console.log('Sending request to:', fullUrl);
+
+            fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `reviewId=${currentReviewId}`
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success data:', data);
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Redirect to user reviews after successful deletion
+                    window.location.href = '${pageContext.request.contextPath}/review/user';
+                } else {
+                    showNotification(data.message, 'error');
+                }
+                modal.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while deleting the review', 'error');
+                modal.style.display = 'none';
+            });
+        }
+    });
+
+    cancelDeleteBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // Close modal if clicking outside
+    window.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
     });
 
     // Notification function
@@ -354,7 +421,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 });
-
 </script>
+
+<style>
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    background-color: var(--success);
+    color: white;
+    max-width: 300px;
+    z-index: 1000;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: translateX(110%);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-error {
+    background-color: var(--danger);
+}
+
+.notification-warning {
+    background-color: var(--warning);
+}
+</style>
 
 <jsp:include page="/views/common/footer.jsp" />

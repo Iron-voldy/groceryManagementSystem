@@ -16,7 +16,7 @@
         <c:when test="${not empty reviews and reviews.size() > 0}">
             <div class="reviews-grid">
                 <c:forEach var="review" items="${reviews}">
-                    <div class="review-card">
+                    <div class="review-card" data-review-id="${review.reviewId}">
                         <div class="review-header">
                             <div class="review-rating">
                                 <c:forEach begin="1" end="5" var="star">
@@ -74,6 +74,8 @@
                                     <a href="${pageContext.request.contextPath}/review/edit?reviewId=${review.reviewId}"
                                        class="btn btn-sm btn-primary">Edit</a>
                                 </c:if>
+                                <button class="btn btn-sm btn-danger delete-review-btn"
+                                        data-review-id="${review.reviewId}">Delete</button>
                             </div>
                         </div>
                     </div>
@@ -89,6 +91,18 @@
             </div>
         </c:otherwise>
     </c:choose>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="modal">
+    <div class="modal-content">
+        <h3>Confirm Deletion</h3>
+        <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button id="confirmDelete" class="btn btn-danger">Delete</button>
+            <button id="cancelDelete" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -111,6 +125,7 @@
     box-shadow: var(--card-shadow);
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .review-header {
@@ -216,6 +231,187 @@
     margin-bottom: 20px;
     color: var(--light-text);
 }
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: var(--dark-surface);
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    max-width: 500px;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    color: var(--dark-text);
+}
+
+.modal-content p {
+    margin-bottom: 30px;
+    color: var(--light-text);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    background-color: var(--success);
+    color: white;
+    max-width: 300px;
+    z-index: 1000;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: translateX(110%);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-error {
+    background-color: var(--danger);
+}
+
+.notification-warning {
+    background-color: var(--warning);
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete review with confirmation
+    const deleteButtons = document.querySelectorAll('.delete-review-btn');
+    const modal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    const cancelDeleteBtn = document.getElementById('cancelDelete');
+    let currentReviewId = null;
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentReviewId = this.getAttribute('data-review-id');
+            modal.style.display = 'block';
+        });
+    });
+
+    confirmDeleteBtn.addEventListener('click', function() {
+        if (currentReviewId) {
+            // Use the full context path for the URL
+            const fullUrl = '${pageContext.request.contextPath}/review/delete';
+            console.log('Sending delete request to:', fullUrl);
+
+            fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `reviewId=${currentReviewId}`
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success data:', data);
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Remove the review card from the DOM
+                    const reviewCard = document.querySelector(`.review-card[data-review-id="${currentReviewId}"]`);
+                    if (reviewCard) {
+                        reviewCard.remove();
+                    }
+
+                    // If no more reviews, reload the page to show the "no reviews" message
+                    if (document.querySelectorAll('.review-card').length === 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    showNotification(data.message, 'error');
+                }
+                modal.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while deleting the review', 'error');
+                modal.style.display = 'none';
+            });
+        }
+    });
+
+    cancelDeleteBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // Close modal if clicking outside
+    window.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Notification function
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    // Check for success message in session and display notification
+    const urlParams = new URLSearchParams(window.location.search);
+    const successMessage = urlParams.get('success');
+    const errorMessage = urlParams.get('error');
+
+    if (successMessage) {
+        showNotification(decodeURIComponent(successMessage), 'success');
+    } else if (errorMessage) {
+        showNotification(decodeURIComponent(errorMessage), 'error');
+    }
+});
+</script>
 
 <jsp:include page="/views/common/footer.jsp" />

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@WebServlet("/review/*")
+@WebServlet(urlPatterns = {"/review/*", "/review/delete"})
 public class ReviewServlet extends HttpServlet {
     private ReviewDAO reviewDAO;
     private ProductDAO productDAO;
@@ -410,8 +410,13 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
-            return;
+            if (isAjaxRequest(request)) {
+                sendJsonResponse(response, false, "You must be logged in to delete reviews");
+                return;
+            } else {
+                response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
+                return;
+            }
         }
 
         User currentUser = (User) session.getAttribute("user");
@@ -469,6 +474,7 @@ public class ReviewServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "Error processing your request: " + e.getMessage());
             } else {
