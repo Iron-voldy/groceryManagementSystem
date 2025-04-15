@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const reviewId = this.getAttribute('data-review-id');
+            const reviewCard = this.closest('.review-card');
 
             if (!reviewId) {
                 showNotification('Error: Review ID is missing', 'error');
@@ -292,19 +293,43 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-                // Use direct form submission instead of redirection to ensure proper handling
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `${contextPath}/review/delete`;
-
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'reviewId';
-                idInput.value = reviewId;
-
-                form.appendChild(idInput);
-                document.body.appendChild(form);
-                form.submit();
+                // Use fetch for AJAX request
+                fetch(`${contextPath}/review/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new URLSearchParams({
+                        reviewId: reviewId
+                    })
+                })
+                .then(response => {
+                    // Check if response is OK
+                    if (!response.ok) {
+                        // Try to parse error response
+                        return response.text().then(text => {
+                            console.error('Error response:', text);
+                            throw new Error('Network response was not ok: ' + text);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        // Remove the review row from the DOM
+                        if (reviewCard) {
+                            reviewCard.remove();
+                        }
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while deleting the review', 'error');
+                });
             }
         });
     });
@@ -329,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 });
+
 </script>
 
 <jsp:include page="/views/common/footer.jsp" />

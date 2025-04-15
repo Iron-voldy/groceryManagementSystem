@@ -406,7 +406,6 @@ public class ReviewServlet extends HttpServlet {
     }
 
     // Method to delete a review
-    // Method to delete a review - supports both GET and POST methods
     private void deleteReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -418,10 +417,6 @@ public class ReviewServlet extends HttpServlet {
         User currentUser = (User) session.getAttribute("user");
         String reviewId = request.getParameter("reviewId");
 
-        // Log the incoming request for debugging
-        System.out.println("Delete review request received: reviewId=" + reviewId);
-
-        // Handle missing review ID
         if (reviewId == null || reviewId.trim().isEmpty()) {
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "Review ID is required");
@@ -432,7 +427,6 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
-        // Attempt to find the review
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
             if (isAjaxRequest(request)) {
@@ -446,7 +440,6 @@ public class ReviewServlet extends HttpServlet {
 
         Review review = reviewOptional.get();
 
-        // Ensure only the review owner or an admin can delete
         if (!review.getUserId().equals(currentUser.getUserId()) &&
                 currentUser.getRole() != User.UserRole.ADMIN) {
             if (isAjaxRequest(request)) {
@@ -458,7 +451,6 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
-        // Attempt to delete the review
         try {
             boolean success = reviewDAO.deleteReview(reviewId);
             if (success) {
@@ -477,16 +469,15 @@ public class ReviewServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error deleting review: " + e.getMessage());
-            e.printStackTrace();
             if (isAjaxRequest(request)) {
                 sendJsonResponse(response, false, "Error processing your request: " + e.getMessage());
             } else {
-                request.getSession().setAttribute("error", "Error processing your request: " + e.getMessage());
+                request.setAttribute("error", "Error processing your request: " + e.getMessage());
                 response.sendRedirect(request.getContextPath() + "/review/user");
             }
         }
     }
+
 
     // Method to moderate a review (for admins)
     private void moderateReview(HttpServletRequest request, HttpServletResponse response)
