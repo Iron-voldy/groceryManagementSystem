@@ -15,8 +15,15 @@ public class CartDAO {
         this.cartFilePath = fileInitUtil.getDataFilePath("cart.txt");
     }
 
+    // Create a new cart
     public boolean createCart(Cart cart) {
-        if (!validateCart(cart)) {
+        // Validate cart before creating
+        if (cart == null || cart.getUserId() == null || cart.getUserId().isEmpty()) {
+            return false;
+        }
+
+        // Check if a cart already exists for this user
+        if (getCartByUserId(cart.getUserId()).isPresent()) {
             return false;
         }
 
@@ -24,6 +31,7 @@ public class CartDAO {
         return true;
     }
 
+    // Get cart by user ID
     public Optional<Cart> getCartByUserId(String userId) {
         return FileHandlerUtil.readFromFile(cartFilePath).stream()
                 .map(Cart::fromFileString)
@@ -31,6 +39,7 @@ public class CartDAO {
                 .findFirst();
     }
 
+    // Get cart by cart ID
     public Optional<Cart> getCartById(String cartId) {
         return FileHandlerUtil.readFromFile(cartFilePath).stream()
                 .map(Cart::fromFileString)
@@ -38,10 +47,12 @@ public class CartDAO {
                 .findFirst();
     }
 
+    // Update an existing cart
     public boolean updateCart(Cart updatedCart) {
         List<String> lines = FileHandlerUtil.readFromFile(cartFilePath);
-        boolean cartFound = false;
 
+        // Find and replace the cart
+        boolean cartFound = false;
         for (int i = 0; i < lines.size(); i++) {
             Cart existingCart = Cart.fromFileString(lines.get(i));
             if (existingCart.getCartId().equals(updatedCart.getCartId())) {
@@ -51,20 +62,36 @@ public class CartDAO {
             }
         }
 
+        // If cart not found by cartId, try to update by userId
+        if (!cartFound) {
+            for (int i = 0; i < lines.size(); i++) {
+                Cart existingCart = Cart.fromFileString(lines.get(i));
+                if (existingCart.getUserId().equals(updatedCart.getUserId())) {
+                    lines.set(i, updatedCart.toFileString());
+                    cartFound = true;
+                    break;
+                }
+            }
+        }
+
+        // Write updated lines back to file
         if (cartFound) {
             try (java.io.PrintWriter writer = new java.io.PrintWriter(cartFilePath)) {
                 lines.forEach(writer::println);
+                return true;
             } catch (java.io.FileNotFoundException e) {
                 System.err.println("Error updating cart: " + e.getMessage());
                 return false;
             }
         }
 
-        return cartFound;
+        return false;
     }
 
+    // Delete a cart
     public boolean deleteCart(String cartId) {
         List<String> lines = FileHandlerUtil.readFromFile(cartFilePath);
+
         boolean cartRemoved = lines.removeIf(line -> {
             Cart cart = Cart.fromFileString(line);
             return cart.getCartId().equals(cartId);
@@ -73,16 +100,20 @@ public class CartDAO {
         if (cartRemoved) {
             try (java.io.PrintWriter writer = new java.io.PrintWriter(cartFilePath)) {
                 lines.forEach(writer::println);
+                return true;
             } catch (java.io.FileNotFoundException e) {
                 System.err.println("Error deleting cart: " + e.getMessage());
                 return false;
             }
         }
 
-        return cartRemoved;
+        return false;
     }
 
-    private boolean validateCart(Cart cart) {
-        return cart.getUserId() != null && !cart.getUserId().isEmpty();
+    // Get all carts (for admin use)
+    public List<Cart> getAllCarts() {
+        return FileHandlerUtil.readFromFile(cartFilePath).stream()
+                .map(Cart::fromFileString)
+                .collect(Collectors.toList());
     }
 }

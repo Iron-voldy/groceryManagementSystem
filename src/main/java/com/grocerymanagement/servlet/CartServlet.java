@@ -3,9 +3,7 @@ package com.grocerymanagement.servlet;
 import com.grocerymanagement.config.FileInitializationUtil;
 import com.grocerymanagement.dao.CartDAO;
 import com.grocerymanagement.dao.ProductDAO;
-import com.grocerymanagement.dao.OrderDAO;
 import com.grocerymanagement.model.Cart;
-import com.grocerymanagement.model.Order;
 import com.grocerymanagement.model.Product;
 import com.grocerymanagement.model.User;
 
@@ -15,10 +13,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,14 +24,24 @@ import java.util.stream.Collectors;
 public class CartServlet extends HttpServlet {
     private CartDAO cartDAO;
     private ProductDAO productDAO;
-    private OrderDAO orderDAO;
 
     @Override
     public void init() throws ServletException {
         FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
         cartDAO = new CartDAO(fileInitUtil);
         productDAO = new ProductDAO(fileInitUtil);
-        orderDAO = new OrderDAO(fileInitUtil);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+
+        if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/view")) {
+            viewCart(request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
     }
 
     @Override
@@ -43,7 +50,7 @@ public class CartServlet extends HttpServlet {
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid request");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -57,247 +64,9 @@ public class CartServlet extends HttpServlet {
             case "/remove":
                 removeFromCart(request, response);
                 break;
-            case "/clear":
-                clearCart(request, response);
-                break;
-            case "/checkout":
-                processCheckout(request, response);
-                break;
             default:
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String pathInfo = request.getPathInfo();
-
-        if (pathInfo == null || pathInfo.equals("/")) {
-            viewCart(request, response);
-        } else {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        }
-    }
-
-    private void addToCart(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
-            return;
-        }
-
-        User currentUser = (User) session.getAttribute("user");
-        String productId = request.getParameter("productId");
-        String quantityStr = request.getParameter("quantity");
-
-        // Validate inputs
-        if (productId == null || quantityStr == null) {
-            request.setAttribute("error", "Invalid parameters");
-            request.getRequestDispatcher("/views/product/product-details.jsp").forward(request, response);
-            return;
-        }
-
-        int quantity;
-        try {
-            quantity = Integer.parseInt(quantityStr);
-            if (quantity <= 0) {
-                throw new NumberFormatException("Quantity must be positive");
-            }
-        } catch (NumberFormatException e) {
-            request.setAttribute("error", "Invalid quantity");
-            request.getRequestDispatcher("/views/product/product-details.jsp").forward(request, response);
-            return;
-        }
-
-        // Check product exists and has enough stock
-        Optional<Product> productOptional = productDAO.getProductById(productId);
-        if (!productOptional.isPresent()) {
-            request.setAttribute("error", "Product not found");
-            request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
-            return;
-        }
-
-        Product product = productOptional.get();
-        if (product.getStockQuantity() < quantity) {
-            request.setAttribute("error", "Not enough stock available");
-            request.setAttribute("product", product);
-            request.getRequestDispatcher("/views/product/product-details.jsp").forward(request, response);
-            return;
-        }
-
-        // Get or create cart
-        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        Cart cart;
-        if (!cartOptional.isPresent()) {
-            cart = new Cart(currentUser.getUserId());
-        } else {
-            cart = cartOptional.get();
-        }
-
-        // Add item to cart
-        Cart.CartItem newItem = new Cart.CartItem(productId, quantity, product.getPrice());
-        cart.addItem(newItem);
-
-        // Save cart
-        if (!cartOptional.isPresent()) {
-            cartDAO.createCart(cart);
-        } else {
-            cartDAO.updateCart(cart);
-        }
-
-        // Redirect to cart view
-        response.sendRedirect(request.getContextPath() + "/cart/");
-    }
-
-    private void updateCart(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
-            return;
-        }
-
-        User currentUser = (User) session.getAttribute("user");
-        String productId = request.getParameter("productId");
-        String quantityStr = request.getParameter("quantity");
-
-        // Validate inputs
-        if (productId == null || quantityStr == null) {
-            request.setAttribute("error", "Invalid parameters");
-            viewCart(request, response);
-            return;
-        }
-
-        int quantity;
-        try {
-            quantity = Integer.parseInt(quantityStr);
-            if (quantity < 0) {
-                throw new NumberFormatException("Quantity cannot be negative");
-            }
-        } catch (NumberFormatException e) {
-            request.setAttribute("error", "Invalid quantity");
-            viewCart(request, response);
-            return;
-        }
-
-        // Get user's cart
-        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        if (!cartOptional.isPresent()) {
-            request.setAttribute("error", "Cart not found");
-            viewCart(request, response);
-            return;
-        }
-
-        Cart cart = cartOptional.get();
-
-        // If quantity is 0, remove item
-        if (quantity == 0) {
-            cart.removeItem(productId);
-        } else {
-            // Check product exists and has enough stock
-            Optional<Product> productOptional = productDAO.getProductById(productId);
-            if (!productOptional.isPresent()) {
-                request.setAttribute("error", "Product not found");
-                viewCart(request, response);
-                return;
-            }
-
-            Product product = productOptional.get();
-            if (product.getStockQuantity() < quantity) {
-                request.setAttribute("error", "Not enough stock available");
-                viewCart(request, response);
-                return;
-            }
-
-            // Update quantity
-            boolean itemFound = false;
-            for (Cart.CartItem item : cart.getItems()) {
-                if (item.getProductId().equals(productId)) {
-                    item.setQuantity(quantity);
-                    itemFound = true;
-                    break;
-                }
-            }
-
-            if (!itemFound) {
-                request.setAttribute("error", "Item not found in cart");
-                viewCart(request, response);
-                return;
-            }
-        }
-
-        // Update cart
-        cartDAO.updateCart(cart);
-
-        // Redirect to cart view
-        response.sendRedirect(request.getContextPath() + "/cart/");
-    }
-
-    private void removeFromCart(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
-            return;
-        }
-
-        User currentUser = (User) session.getAttribute("user");
-        String productId = request.getParameter("productId");
-
-        // Validate input
-        if (productId == null) {
-            request.setAttribute("error", "Invalid parameters");
-            viewCart(request, response);
-            return;
-        }
-
-        // Get user's cart
-        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        if (!cartOptional.isPresent()) {
-            request.setAttribute("error", "Cart not found");
-            viewCart(request, response);
-            return;
-        }
-
-        Cart cart = cartOptional.get();
-        cart.removeItem(productId);
-
-        // Update cart
-        cartDAO.updateCart(cart);
-
-        // Redirect to cart view
-        response.sendRedirect(request.getContextPath() + "/cart/");
-    }
-
-    private void clearCart(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
-            return;
-        }
-
-        User currentUser = (User) session.getAttribute("user");
-
-        // Get user's cart
-        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        if (!cartOptional.isPresent()) {
-            request.setAttribute("error", "Cart not found");
-            request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
-            return;
-        }
-
-        Cart cart = cartOptional.get();
-        // Remove all items from cart
-        cart.getItems().clear();
-
-        // Update cart
-        cartDAO.updateCart(cart);
-
-        request.setAttribute("success", "Cart cleared successfully");
-        request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
     }
 
     private void viewCart(HttpServletRequest request, HttpServletResponse response)
@@ -310,145 +79,290 @@ public class CartServlet extends HttpServlet {
 
         User currentUser = (User) session.getAttribute("user");
 
-        // Get user's cart
+        // Fetch user's cart
         Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        if (!cartOptional.isPresent()) {
-            // Create a new empty cart if not exists
-            Cart newCart = new Cart(currentUser.getUserId());
-            cartDAO.createCart(newCart);
-            request.setAttribute("cart", newCart);
-        } else {
-            Cart cart = cartOptional.get();
 
-            // Fetch full product details for cart items
-            List<Product> cartProducts = cart.getItems().stream()
-                    .map(item -> productDAO.getProductById(item.getProductId()).orElse(null))
-                    .collect(Collectors.toList());
+        Cart cart = cartOptional.orElse(new Cart(currentUser.getUserId()));
 
-            // Calculate total cart value
-            BigDecimal cartTotal = cart.calculateTotal();
+        // Enrich cart items with product details
+        List<Cart.CartItem> enrichedItems = cart.getItems().stream()
+                .map(item -> {
+                    Optional<Product> productOpt = productDAO.getProductById(item.getProductId());
+                    if (productOpt.isPresent()) {
+                        Product product = productOpt.get();
+                        // Update item with product name if not already set
+                        if (item.getProductName() == null) {
+                            item.setProductName(product.getName());
+                        }
+                    }
+                    return item;
+                })
+                .collect(Collectors.toList());
 
-            request.setAttribute("cart", cart);
-            request.setAttribute("cartProducts", cartProducts);
-            request.setAttribute("cartTotal", cartTotal);
-        }
+        cart.setItems(enrichedItems);
 
+        // Calculate cart total
+        BigDecimal cartTotal = cart.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        request.setAttribute("cart", cart);
+        request.setAttribute("cartTotal", cartTotal);
+
+        // Forward to cart view
         request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
     }
 
-    /**
-     * Checkout process - convert cart to order
-     */
-    private void processCheckout(HttpServletRequest request, HttpServletResponse response)
+    private void addToCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/views/user/login.jsp");
+            sendJsonResponse(response, false, "Please log in to add items to cart");
             return;
         }
 
         User currentUser = (User) session.getAttribute("user");
+        String productId = request.getParameter("productId");
+        String quantityStr = request.getParameter("quantity");
 
-        // Get shipping details from request
-        String recipientName = request.getParameter("recipientName");
-        String addressLine1 = request.getParameter("addressLine1");
-        String addressLine2 = request.getParameter("addressLine2");
-        String city = request.getParameter("city");
-        String state = request.getParameter("state");
-        String postalCode = request.getParameter("postalCode");
-        String country = request.getParameter("country");
-        String phoneNumber = request.getParameter("phoneNumber");
+        // Validate inputs
+        if (productId == null || quantityStr == null) {
+            sendJsonResponse(response, false, "Invalid parameters");
+            return;
+        }
 
-        // Validate essential shipping details
-        if (recipientName == null || recipientName.trim().isEmpty() ||
-                addressLine1 == null || addressLine1.trim().isEmpty() ||
-                city == null || city.trim().isEmpty() ||
-                state == null || state.trim().isEmpty() ||
-                postalCode == null || postalCode.trim().isEmpty() ||
-                country == null || country.trim().isEmpty() ||
-                phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            request.setAttribute("error", "Complete shipping information is required");
-            viewCart(request, response);
+        int quantity;
+        try {
+            quantity = Integer.parseInt(quantityStr);
+            if (quantity <= 0) {
+                sendJsonResponse(response, false, "Quantity must be positive");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            sendJsonResponse(response, false, "Invalid quantity");
+            return;
+        }
+
+        // Check if product exists
+        Optional<Product> productOptional = productDAO.getProductById(productId);
+        if (!productOptional.isPresent()) {
+            sendJsonResponse(response, false, "Product not found");
+            return;
+        }
+
+        Product product = productOptional.get();
+
+        // Check stock availability
+        if (product.getStockQuantity() < quantity) {
+            sendJsonResponse(response, false, "Insufficient stock");
+            return;
+        }
+
+        // Get or create cart
+        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
+        Cart cart;
+        if (!cartOptional.isPresent()) {
+            cart = new Cart(currentUser.getUserId());
+        } else {
+            cart = cartOptional.get();
+        }
+
+        // Create cart item
+        Cart.CartItem cartItem = new Cart.CartItem(
+                productId,
+                quantity,
+                product.getPrice(),
+                product.getName()
+        );
+        cart.addItem(cartItem);
+
+        // Save cart
+        boolean success = cartOptional.isPresent() ?
+                cartDAO.updateCart(cart) :
+                cartDAO.createCart(cart);
+
+        if (success) {
+            // Update cart count in session
+            int cartItemCount = cart.getItems().size();
+            session.setAttribute("cartItemCount", cartItemCount);
+
+            sendJsonResponse(response, true, "Item added to cart", cartItemCount);
+        } else {
+            sendJsonResponse(response, false, "Failed to add item to cart");
+        }
+    }
+
+    private void updateCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            sendJsonResponse(response, false, "Please log in to update cart");
+            return;
+        }
+
+        User currentUser = (User) session.getAttribute("user");
+        String productId = request.getParameter("productId");
+        String quantityStr = request.getParameter("quantity");
+
+        // Validate inputs
+        if (productId == null || quantityStr == null) {
+            sendJsonResponse(response, false, "Invalid parameters");
+            return;
+        }
+
+        int quantity;
+        try {
+            quantity = Integer.parseInt(quantityStr);
+            if (quantity < 0) {
+                sendJsonResponse(response, false, "Quantity cannot be negative");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            sendJsonResponse(response, false, "Invalid quantity");
             return;
         }
 
         // Get user's cart
         Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
-        if (!cartOptional.isPresent() || cartOptional.get().getItems().isEmpty()) {
-            request.setAttribute("error", "Cart is empty");
-            request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
+        if (!cartOptional.isPresent()) {
+            sendJsonResponse(response, false, "Cart not found");
             return;
         }
 
         Cart cart = cartOptional.get();
 
-        // Validate stock for all cart items
-        for (Cart.CartItem item : cart.getItems()) {
-            Optional<Product> productOptional = productDAO.getProductById(item.getProductId());
-            if (!productOptional.isPresent()) {
-                request.setAttribute("error", "Product not found: " + item.getProductId());
-                request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
-                return;
-            }
-
-            Product product = productOptional.get();
-            if (product.getStockQuantity() < item.getQuantity()) {
-                request.setAttribute("error", "Insufficient stock for " + product.getName());
-                request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
-                return;
-            }
-        }
-
-        // Create order from cart
-        Order newOrder = new Order(currentUser.getUserId());
-
-        // Set up shipping details
-        Order.ShippingDetails shippingDetails = new Order.ShippingDetails(
-                recipientName, addressLine1, city, state, postalCode, country, phoneNumber
-        );
-
-        // Add optional addressLine2 if provided
-        if (addressLine2 != null && !addressLine2.trim().isEmpty()) {
-            shippingDetails.setAddressLine2(addressLine2);
-        }
-
-        newOrder.setShippingDetails(shippingDetails);
-
-        // Add items from cart to order
-        for (Cart.CartItem cartItem : cart.getItems()) {
-            // Try to get product name for better order display
-            String productName = "";
-            Optional<Product> productOpt = productDAO.getProductById(cartItem.getProductId());
-            if (productOpt.isPresent()) {
-                productName = productOpt.get().getName();
-            }
-
-            Order.OrderItem orderItem = new Order.OrderItem(
-                    cartItem.getProductId(),
-                    productName,
-                    cartItem.getQuantity(),
-                    cartItem.getPrice()
-            );
-            newOrder.addItem(orderItem);
-
-            // Reduce product stock
-            productDAO.updateProductStock(cartItem.getProductId(), -cartItem.getQuantity());
-        }
-
-        // Save order
-        if (!orderDAO.createOrder(newOrder)) {
-            request.setAttribute("error", "Failed to create order");
-            request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
+        // Check if product exists
+        Optional<Product> productOptional = productDAO.getProductById(productId);
+        if (!productOptional.isPresent()) {
+            sendJsonResponse(response, false, "Product not found");
             return;
         }
 
-        // Clear the cart
-        cart.getItems().clear();
-        cartDAO.updateCart(cart);
+        Product product = productOptional.get();
 
-        // Redirect to order confirmation
-        request.setAttribute("order", newOrder);
-        request.setAttribute("success", "Order placed successfully");
-        request.getRequestDispatcher("/views/order/order-confirmation.jsp").forward(request, response);
+        // Check stock availability if quantity > 0
+        if (quantity > 0 && product.getStockQuantity() < quantity) {
+            sendJsonResponse(response, false, "Insufficient stock");
+            return;
+        }
+
+        // Remove item if quantity is 0, otherwise update
+        if (quantity == 0) {
+            cart.removeItem(productId);
+        } else {
+            boolean itemFound = false;
+            for (Cart.CartItem item : cart.getItems()) {
+                if (item.getProductId().equals(productId)) {
+                    item.setQuantity(quantity);
+                    itemFound = true;
+                    break;
+                }
+            }
+
+            if (!itemFound) {
+                sendJsonResponse(response, false, "Item not found in cart");
+                return;
+            }
+        }
+
+        // Update cart
+        if (cartDAO.updateCart(cart)) {
+            // Recalculate cart total and item count
+            BigDecimal cartTotal = cart.getItems().stream()
+                    .map(item -> {
+                        Optional<Product> prod = productDAO.getProductById(item.getProductId());
+                        return prod.map(p ->
+                                p.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))
+                        ).orElse(BigDecimal.ZERO);
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            int cartItemCount = cart.getItems().size();
+            session.setAttribute("cartItemCount", cartItemCount);
+
+            sendJsonResponse(response, true, "Cart updated", cartItemCount, cartTotal.doubleValue());
+        } else {
+            sendJsonResponse(response, false, "Failed to update cart");
+        }
+    }
+
+    private void removeFromCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            sendJsonResponse(response, false, "Please log in to remove items from cart");
+            return;
+        }
+
+        User currentUser = (User) session.getAttribute("user");
+        String productId = request.getParameter("productId");
+
+        // Validate input
+        if (productId == null) {
+            sendJsonResponse(response, false, "Invalid parameters");
+            return;
+        }
+
+        // Get user's cart
+        Optional<Cart> cartOptional = cartDAO.getCartByUserId(currentUser.getUserId());
+        if (!cartOptional.isPresent()) {
+            sendJsonResponse(response, false, "Cart not found");
+            return;
+        }
+
+        Cart cart = cartOptional.get();
+        cart.removeItem(productId);
+
+        // Update cart
+        if (cartDAO.updateCart(cart)) {
+            // Update cart count in session
+            int cartItemCount = cart.getItems().size();
+            session.setAttribute("cartItemCount", cartItemCount);
+
+            sendJsonResponse(response, true, "Item removed from cart", cartItemCount);
+        } else {
+            sendJsonResponse(response, false, "Failed to remove item from cart");
+        }
+    }
+
+    // Utility method to send JSON responses
+    private void sendJsonResponse(HttpServletResponse response, boolean success, String message)
+            throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        PrintWriter out = response.getWriter();
+        out.print("{\"success\":" + success + ",\"message\":\"" +
+                message.replace("\"", "\\\"") + "\"}");
+        out.flush();
+    }
+
+    // Overloaded method to send JSON response with cart item count
+    private void sendJsonResponse(HttpServletResponse response, boolean success,
+                                  String message, int cartItemCount)
+            throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        PrintWriter out = response.getWriter();
+        out.print("{\"success\":" + success +
+                ",\"message\":\"" + message.replace("\"", "\\\"") +
+                "\",\"cartItemCount\":" + cartItemCount + "}");
+        out.flush();
+    }
+
+    // Overloaded method to send JSON response with cart item count and total
+    private void sendJsonResponse(HttpServletResponse response, boolean success,
+                                  String message, int cartItemCount, double cartTotal)
+            throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        PrintWriter out = response.getWriter();
+        out.print("{\"success\":" + success +
+                ",\"message\":\"" + message.replace("\"", "\\\"") +
+                "\",\"cartItemCount\":" + cartItemCount +
+                ",\"cartTotal\":" + cartTotal + "}");
+        out.flush();
     }
 }
