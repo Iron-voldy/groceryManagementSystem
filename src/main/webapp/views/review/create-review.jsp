@@ -52,7 +52,10 @@
         <div class="form-group">
             <label for="reviewText">Your Review <span class="required">*</span></label>
             <textarea id="reviewText" name="reviewText" rows="5" required
-                      placeholder="Share your experience with this product">${param.reviewText}</textarea>
+                      placeholder="Share your experience with this product. Minimum 10 characters.">${param.reviewText}</textarea>
+            <div class="char-count">
+                <span id="charCount">0</span>/500 characters
+            </div>
         </div>
 
         <div class="form-actions">
@@ -146,6 +149,13 @@
     border: 1px solid var(--danger);
     color: var(--danger);
 }
+
+.char-count {
+    text-align: right;
+    font-size: 0.8em;
+    color: var(--light-text);
+    margin-top: 5px;
+}
 </style>
 
 <script>
@@ -154,6 +164,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const ratingInput = document.getElementById('rating');
     const ratingError = document.querySelector('.rating-error');
     const reviewForm = document.getElementById('reviewForm');
+    const reviewText = document.getElementById('reviewText');
+    const charCount = document.getElementById('charCount');
+
+    // Update character count initially and on input
+    updateCharCount();
+    reviewText.addEventListener('input', updateCharCount);
+
+    function updateCharCount() {
+        const count = reviewText.value.length;
+        charCount.textContent = count;
+
+        // Visual feedback on character count
+        if (count < 10) {
+            charCount.style.color = 'var(--danger)';
+        } else if (count > 400) {
+            charCount.style.color = 'var(--warning)';
+        } else {
+            charCount.style.color = 'var(--light-text)';
+        }
+    }
 
     // Star rating functionality
     stars.forEach(star => {
@@ -200,9 +230,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Validate review text
-        const reviewText = document.getElementById('reviewText').value.trim();
-        if (!reviewText) {
-            document.getElementById('reviewText').classList.add('is-invalid');
+        const text = reviewText.value.trim();
+        if (!text) {
+            reviewText.classList.add('is-invalid');
+            isValid = false;
+        } else if (text.length < 10) {
+            reviewText.classList.add('is-invalid');
+            alert('Review text must be at least 10 characters long');
             isValid = false;
         }
 

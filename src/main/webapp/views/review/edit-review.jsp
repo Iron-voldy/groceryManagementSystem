@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="Edit Review" />
@@ -65,7 +66,68 @@
 </div>
 
 <style>
-/* Reuse styles from create-review.jsp with minor modifications */
+/* Styles remain unchanged */
+.review-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--dark-surface);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+}
+
+.review-product-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.product-image {
+    width: 100px;
+    height: 100px;
+    margin-right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--dark-surface-hover);
+    border-radius: var(--border-radius);
+}
+
+.product-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.placeholder-image {
+    font-size: 3rem;
+    color: var(--light-text);
+}
+
+.star-rating {
+    display: flex;
+    font-size: 2rem;
+    color: #ccc;
+    margin-bottom: 5px;
+}
+
+.star-rating .star {
+    cursor: pointer;
+    margin-right: 5px;
+    transition: color 0.2s;
+}
+
+.star-rating .star:hover,
+.star-rating .star.hover {
+    color: var(--secondary);
+}
+
+.star-rating .star.filled {
+    color: var(--secondary);
+}
+
 .review-status {
     text-align: center;
     margin-bottom: 20px;
@@ -93,6 +155,12 @@
     background-color: rgba(244, 67, 54, 0.2);
     color: var(--danger);
 }
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
 </style>
 
 <script>
@@ -112,6 +180,23 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0; i < rating; i++) {
                 stars[i].classList.add('filled');
             }
+        });
+
+        // Hover effect
+        star.addEventListener('mouseover', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+
+            stars.forEach((s, index) => {
+                if (index < rating) {
+                    s.classList.add('hover');
+                } else {
+                    s.classList.remove('hover');
+                }
+            });
+        });
+
+        star.addEventListener('mouseout', function() {
+            stars.forEach(s => s.classList.remove('hover'));
         });
     });
 });

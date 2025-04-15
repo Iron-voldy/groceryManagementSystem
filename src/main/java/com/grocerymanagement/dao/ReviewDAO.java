@@ -5,6 +5,10 @@ import com.grocerymanagement.model.Review;
 import com.grocerymanagement.util.FileHandlerUtil;
 import com.grocerymanagement.util.ReviewValidationUtil;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -18,12 +22,33 @@ public class ReviewDAO {
 
     public ReviewDAO(FileInitializationUtil fileInitUtil) {
         this.reviewFilePath = fileInitUtil.getDataFilePath("reviews.txt");
+        ensureFileExists();
+    }
+
+    /**
+     * Ensure the reviews file exists
+     */
+    private void ensureFileExists() {
+        File file = new File(reviewFilePath);
+        if (!file.exists()) {
+            try {
+                File parentDir = file.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    parentDir.mkdirs();
+                }
+                file.createNewFile();
+                System.out.println("Created reviews file at: " + reviewFilePath);
+            } catch (IOException e) {
+                System.err.println("Error creating reviews file: " + e.getMessage());
+            }
+        }
     }
 
     // Create a new review with validation
     public boolean createReview(Review review) {
         // Validate review before creating
         if (!ReviewValidationUtil.isValidReview(review)) {
+            System.err.println("Review validation failed: " + review.getReviewId());
             return false;
         }
 
@@ -32,13 +57,18 @@ public class ReviewDAO {
                 ReviewValidationUtil.sanitizeReviewText(review.getReviewText())
         );
 
-        // Add to file
-        FileHandlerUtil.writeToFile(
-                reviewFilePath,
-                review.toFileString(),
-                true
-        );
-        return true;
+        try {
+            // Directly write to file to avoid any issues with FileHandlerUtil
+            try (PrintWriter writer = new PrintWriter(new FileWriter(reviewFilePath, true))) {
+                writer.println(review.toFileString());
+                System.out.println("Successfully wrote review to file: " + review.getReviewId());
+                return true;
+            }
+        } catch (IOException e) {
+            System.err.println("Error writing review to file: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // Get review by ID
@@ -114,9 +144,12 @@ public class ReviewDAO {
         }
 
         if (reviewFound) {
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(reviewFilePath)) {
-                lines.forEach(writer::println);
-            } catch (java.io.FileNotFoundException e) {
+            try (PrintWriter writer = new PrintWriter(reviewFilePath)) {
+                for (String line : lines) {
+                    writer.println(line);
+                }
+                return true;
+            } catch (IOException e) {
                 System.err.println("Error updating review: " + e.getMessage());
                 return false;
             }
@@ -136,9 +169,12 @@ public class ReviewDAO {
         });
 
         if (reviewRemoved) {
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(reviewFilePath)) {
-                lines.forEach(writer::println);
-            } catch (java.io.FileNotFoundException e) {
+            try (PrintWriter writer = new PrintWriter(reviewFilePath)) {
+                for (String line : lines) {
+                    writer.println(line);
+                }
+                return true;
+            } catch (IOException e) {
                 System.err.println("Error deleting review: " + e.getMessage());
                 return false;
             }

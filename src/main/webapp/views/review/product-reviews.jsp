@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="${product.name} - Reviews" />
@@ -93,7 +94,7 @@
 
                     <div class="reviews-grid">
                         <c:forEach var="review" items="${reviews}">
-                            <div class="review-card" data-rating="${review.rating}" data-date="${review.reviewDate.getTime()}">
+                            <div class="review-card" data-rating="${review.rating}" data-date="${review.reviewDate.toEpochSecond(java.time.ZoneOffset.UTC)}">
                                 <div class="review-header">
                                     <div class="reviewer-info">
                                         <c:set var="reviewerName" value="${review.userId}" />
@@ -104,7 +105,8 @@
                                         <span class="verified-tag">Verified Purchaser</span>
                                     </div>
                                     <span class="review-date">
-                                        <fmt:formatDate value="${review.reviewDate}" pattern="MMM d, yyyy" />
+                                        <%= ((com.grocerymanagement.model.Review)pageContext.getAttribute("review"))
+                                           .getReviewDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy")) %>
                                     </span>
                                 </div>
                                 <div class="review-rating">

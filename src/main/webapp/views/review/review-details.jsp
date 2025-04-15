@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="Review Details" />
@@ -52,8 +53,8 @@
                     <span class="rating-text">${review.rating}/5 Rating</span>
                 </div>
                 <div class="review-date">
-                    <fmt:formatDate value="${review.reviewDate}"
-                                    pattern="MMMM d, yyyy 'at' h:mm a" />
+                    <%= ((com.grocerymanagement.model.Review)pageContext.getAttribute("review"))
+                        .getReviewDate().format(java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a")) %>
                 </div>
             </div>
 
