@@ -55,6 +55,9 @@ public class ReviewServlet extends HttpServlet {
                 case "/create":
                     showCreateReviewForm(request, response);
                     break;
+                case "/submit":
+                    showCreateReviewForm(request, response);
+                    break;
                 case "/edit":
                     showEditReviewForm(request, response);
                     break;
@@ -173,6 +176,7 @@ public class ReviewServlet extends HttpServlet {
     }
 
     // Method to submit a new review
+    // Method to submit a new review with improved error handling
     private void createReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -186,8 +190,28 @@ public class ReviewServlet extends HttpServlet {
         String ratingStr = request.getParameter("rating");
         String reviewText = request.getParameter("reviewText");
 
-        if (productId == null || ratingStr == null || reviewText == null) {
-            request.setAttribute("error", "All fields are required");
+        // Log the parameters for debugging
+        System.out.println("Creating review - ProductID: " + productId +
+                ", Rating: " + ratingStr +
+                ", Text length: " + (reviewText != null ? reviewText.length() : "null") +
+                ", User: " + currentUser.getUserId());
+
+        // Detailed validation
+        if (productId == null || productId.isEmpty()) {
+            request.setAttribute("error", "Product ID is missing");
+            showCreateReviewForm(request, response);
+            return;
+        }
+
+        if (ratingStr == null || ratingStr.isEmpty()) {
+            request.setAttribute("error", "Rating is required");
+            request.setAttribute("reviewText", reviewText); // Preserve user input
+            showCreateReviewForm(request, response);
+            return;
+        }
+
+        if (reviewText == null || reviewText.trim().isEmpty()) {
+            request.setAttribute("error", "Review text is required");
             showCreateReviewForm(request, response);
             return;
         }
@@ -206,6 +230,7 @@ public class ReviewServlet extends HttpServlet {
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid rating. Please provide a rating between 1 and 5");
+            request.setAttribute("reviewText", reviewText); // Preserve user input
             showCreateReviewForm(request, response);
             return;
         }
@@ -217,30 +242,40 @@ public class ReviewServlet extends HttpServlet {
 
         if (alreadyReviewed) {
             request.setAttribute("error", "You have already reviewed this product");
+            request.setAttribute("reviewText", reviewText); // Preserve user input
             showCreateReviewForm(request, response);
             return;
         }
 
-        // Create and save the new review
-        Review newReview = new Review(currentUser.getUserId(), productId, rating, reviewText);
+        try {
+            // Create and save the new review
+            Review newReview = new Review(currentUser.getUserId(), productId, rating, reviewText);
 
-        // Check if user has purchased this product
-        boolean hasPurchased = hasUserPurchasedProduct(currentUser.getUserId(), productId);
+            // Check if user has purchased this product
+            boolean hasPurchased = hasUserPurchasedProduct(currentUser.getUserId(), productId);
 
-        // Verified purchasers' reviews are auto-approved, others need moderation
-        if (hasPurchased || currentUser.getRole() == User.UserRole.ADMIN) {
-            newReview.setStatus(Review.ReviewStatus.APPROVED);
-        } else {
-            newReview.setStatus(Review.ReviewStatus.PENDING);
-        }
+            // Verified purchasers' reviews are auto-approved, others need moderation
+            if (hasPurchased || currentUser.getRole() == User.UserRole.ADMIN) {
+                newReview.setStatus(Review.ReviewStatus.APPROVED);
+            } else {
+                newReview.setStatus(Review.ReviewStatus.PENDING);
+            }
 
-        if (reviewDAO.createReview(newReview)) {
-            request.setAttribute("success", "Review submitted successfully. " +
-                    (!hasPurchased && currentUser.getRole() != User.UserRole.ADMIN ?
-                            "Your review will be visible after moderation." : ""));
-            response.sendRedirect(request.getContextPath() + "/product/details?productId=" + productId);
-        } else {
-            request.setAttribute("error", "Failed to submit review. Please try again.");
+            if (reviewDAO.createReview(newReview)) {
+                request.setAttribute("success", "Review submitted successfully. " +
+                        (!hasPurchased && currentUser.getRole() != User.UserRole.ADMIN ?
+                                "Your review will be visible after moderation." : ""));
+                response.sendRedirect(request.getContextPath() + "/product/details?productId=" + productId);
+            } else {
+                request.setAttribute("error", "Failed to submit review. Please try again.");
+                request.setAttribute("reviewText", reviewText); // Preserve user input
+                showCreateReviewForm(request, response);
+            }
+        } catch (Exception e) {
+            // Log the exception for debugging
+            e.printStackTrace();
+            request.setAttribute("error", "An error occurred: " + e.getMessage());
+            request.setAttribute("reviewText", reviewText); // Preserve user input
             showCreateReviewForm(request, response);
         }
     }

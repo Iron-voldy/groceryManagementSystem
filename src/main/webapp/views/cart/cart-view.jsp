@@ -58,7 +58,12 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="cart-price">$<fmt:formatNumber value="${item.price}" pattern="#,##0.00"/></td>
+                                    <td class="cart-price">
+                                        <c:choose>
+                                            <c:when test="${empty item.price}">$0.00</c:when>
+                                            <c:otherwise>$<fmt:formatNumber value="${item.price}" pattern="#,##0.00"/></c:otherwise>
+                                        </c:choose>
+                                    </td>
                                     <td class="cart-quantity">
                                         <div class="quantity-control">
                                             <button type="button" class="decrement" aria-label="Decrease quantity">-</button>
@@ -69,7 +74,14 @@
                                         </div>
                                     </td>
                                     <td class="cart-item-total">
-                                        $<fmt:formatNumber value="${item.price.multiply(java.math.BigDecimal.valueOf(item.quantity))}" pattern="#,##0.00"/>
+                                        <c:choose>
+                                            <c:when test="${empty item.price}">
+                                                $0.00
+                                            </c:when>
+                                            <c:otherwise>
+                                                $<fmt:formatNumber value="${item.price.multiply(java.math.BigDecimal.valueOf(item.quantity))}" pattern="#,##0.00"/>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td class="cart-actions">
                                         <button class="btn btn-sm btn-danger remove-from-cart" data-product-id="${item.productId}">
@@ -87,7 +99,12 @@
 
                     <div class="summary-item">
                         <span>Subtotal</span>
-                        <span class="cart-subtotal">$<fmt:formatNumber value="${cartTotal}" pattern="#,##0.00"/></span>
+                        <span class="cart-subtotal">
+                            <c:choose>
+                                <c:when test="${empty cartTotal}">$0.00</c:when>
+                                <c:otherwise>$<fmt:formatNumber value="${cartTotal}" pattern="#,##0.00"/></c:otherwise>
+                            </c:choose>
+                        </span>
                     </div>
 
                     <div class="summary-item">
@@ -97,7 +114,12 @@
 
                     <div class="summary-item summary-total">
                         <span>Total</span>
-                        <span class="cart-total">$<fmt:formatNumber value="${cartTotal}" pattern="#,##0.00"/></span>
+                        <span class="cart-total">
+                            <c:choose>
+                                <c:when test="${empty cartTotal}">$0.00</c:when>
+                                <c:otherwise>$<fmt:formatNumber value="${cartTotal}" pattern="#,##0.00"/></c:otherwise>
+                            </c:choose>
+                        </span>
                     </div>
 
                     <div class="cart-actions">
