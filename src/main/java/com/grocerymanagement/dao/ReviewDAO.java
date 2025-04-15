@@ -58,7 +58,7 @@ public class ReviewDAO {
     ) {
         return FileHandlerUtil.readFromFile(reviewFilePath).stream()
                 .map(Review::fromFileString)
-                .filter(review -> review.getProductId().equals(productId))
+                .filter(review -> productId == null || review.getProductId().equals(productId))
                 .filter(review -> status == null || review.getStatus() == status)
                 .filter(review -> minRating == null || review.getRating() >= minRating)
                 .sorted(sortOrder != null ? sortOrder : Comparator.comparing(Review::getReviewDate).reversed())
@@ -71,6 +71,21 @@ public class ReviewDAO {
                 .map(Review::fromFileString)
                 .filter(review -> review.getUserId().equals(userId))
                 .sorted(Comparator.comparing(Review::getReviewDate).reversed())
+                .collect(Collectors.toList());
+    }
+
+    // Get all reviews
+    public List<Review> getAllReviews() {
+        return FileHandlerUtil.readFromFile(reviewFilePath).stream()
+                .map(Review::fromFileString)
+                .collect(Collectors.toList());
+    }
+
+    // Get all reviews with status
+    public List<Review> getReviewsByStatus(Review.ReviewStatus status) {
+        return FileHandlerUtil.readFromFile(reviewFilePath).stream()
+                .map(Review::fromFileString)
+                .filter(review -> review.getStatus() == status)
                 .collect(Collectors.toList());
     }
 
@@ -113,19 +128,12 @@ public class ReviewDAO {
     // Delete review
     public boolean deleteReview(String reviewId) {
         List<String> lines = FileHandlerUtil.readFromFile(reviewFilePath);
-        boolean reviewRemoved = false;
+        final String finalReviewId = reviewId; // Create a final copy for use in lambda
 
-        // Use an iterator-style removal to avoid mutability issues
-        lines = lines.stream()
-                .filter(line -> {
-                    Review review = Review.fromFileString(line);
-                    boolean shouldKeep = !review.getReviewId().equals(reviewId);
-                    if (!shouldKeep) {
-                        reviewRemoved = true;
-                    }
-                    return shouldKeep;
-                })
-                .collect(Collectors.toList());
+        boolean reviewRemoved = lines.removeIf(line -> {
+            Review review = Review.fromFileString(line);
+            return review.getReviewId().equals(finalReviewId);
+        });
 
         if (reviewRemoved) {
             try (java.io.PrintWriter writer = new java.io.PrintWriter(reviewFilePath)) {
@@ -170,7 +178,7 @@ public class ReviewDAO {
         // Rating distribution
         Map<Integer, Integer> distribution = new HashMap<>();
         for (int rating = 1; rating <= 5; rating++) {
-            final int currentRating = rating;
+            final int currentRating = rating; // Create a final copy for lambda
             int count = (int) reviews.stream()
                     .filter(r -> r.getRating() == currentRating)
                     .count();
@@ -179,6 +187,40 @@ public class ReviewDAO {
         stats.ratingDistribution = distribution;
 
         return stats;
+    }
+
+    // Get recent reviews, limited by count
+    public List<Review> getRecentReviews(int limit) {
+        return FileHandlerUtil.readFromFile(reviewFilePath).stream()
+                .map(Review::fromFileString)
+                .sorted(Comparator.comparing(Review::getReviewDate).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    // Get recent reviews for a specific product
+    public List<Review> getRecentReviewsForProduct(String productId, int limit) {
+        final String finalProductId = productId; // Create a final copy for lambda
+        return FileHandlerUtil.readFromFile(reviewFilePath).stream()
+                .map(Review::fromFileString)
+                .filter(review -> review.getProductId().equals(finalProductId))
+                .filter(review -> review.getStatus() == Review.ReviewStatus.APPROVED)
+                .sorted(Comparator.comparing(Review::getReviewDate).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    // Check if a user has already reviewed a product
+    public boolean hasUserReviewedProduct(String userId, String productId) {
+        final String finalUserId = userId; // Create a final copy for lambda
+        final String finalProductId = productId; // Create a final copy for lambda
+
+        return FileHandlerUtil.readFromFile(reviewFilePath).stream()
+                .map(Review::fromFileString)
+                .anyMatch(review ->
+                        review.getUserId().equals(finalUserId) &&
+                                review.getProductId().equals(finalProductId)
+                );
     }
 
     // Inner class for review statistics

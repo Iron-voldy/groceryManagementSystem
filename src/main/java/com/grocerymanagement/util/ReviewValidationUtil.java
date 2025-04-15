@@ -2,6 +2,8 @@ package com.grocerymanagement.util;
 
 import com.grocerymanagement.model.Review;
 
+import java.util.regex.Pattern;
+
 public class ReviewValidationUtil {
     // Validate review rating
     public static boolean isValidRating(int rating) {
@@ -38,13 +40,41 @@ public class ReviewValidationUtil {
                 .replace("\"", "&quot;")
                 .replace("'", "&#x27;");
 
-        return reviewText.trim();
+        // Normalize whitespace
+        reviewText = reviewText.trim().replaceAll("\\s+", " ");
+
+        return reviewText;
     }
 
     // Get review status based on conditions
-    public static Review.ReviewStatus determineReviewStatus(boolean hasPurchased) {
-        return hasPurchased ?
-                Review.ReviewStatus.APPROVED :
-                Review.ReviewStatus.PENDING;
+    public static Review.ReviewStatus determineReviewStatus(boolean hasPurchased, boolean isAdmin) {
+        if (hasPurchased || isAdmin) {
+            return Review.ReviewStatus.APPROVED;
+        } else {
+            return Review.ReviewStatus.PENDING;
+        }
+    }
+
+    // Check for profanity or inappropriate content
+    public static boolean containsInappropriateContent(String reviewText) {
+        if (reviewText == null) return false;
+
+        // Simple example - in production, this would be a more comprehensive list
+        String[] inappropriateWords = {"profanity", "explicit", "obscene"};
+
+        String lowerText = reviewText.toLowerCase();
+        for (String word : inappropriateWords) {
+            if (lowerText.contains(word)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Validate that the review is from a verified purchaser
+    public static boolean isVerifiedPurchaser(String userId, String productId, boolean hasPurchasedProduct) {
+        // This would need to check purchase history in a real implementation
+        return hasPurchasedProduct;
     }
 }

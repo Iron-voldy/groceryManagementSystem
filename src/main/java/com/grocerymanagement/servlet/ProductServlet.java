@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,12 +37,14 @@ import java.util.stream.Collectors;
 )
 public class ProductServlet extends HttpServlet {
     private ProductDAO productDAO;
+    private ReviewDAO reviewDAO;
     private FileInitializationUtil fileInitUtil;
 
     @Override
     public void init() throws ServletException {
         fileInitUtil = new FileInitializationUtil(getServletContext());
         productDAO = new ProductDAO(fileInitUtil);
+        reviewDAO = new ReviewDAO(fileInitUtil);
     }
 
     @Override
@@ -360,11 +363,14 @@ public class ProductServlet extends HttpServlet {
 
             // Try to get reviews for this product if ReviewDAO is available
             try {
-                ReviewDAO reviewDAO = new ReviewDAO(fileInitUtil);
-                List<Review> reviews = reviewDAO.getReviewsByProductId(productId)
-                        .stream()
-                        .filter(review -> review.getStatus() == Review.ReviewStatus.APPROVED)
-                        .collect(Collectors.toList());
+                // Fixed: Pass null for status instead of Review.ReviewStatus.APPROVED
+                // This will only fetch approved reviews with proper ordering
+                List<Review> reviews = reviewDAO.getReviewsByProductId(
+                        productId,
+                        Review.ReviewStatus.APPROVED,
+                        null,
+                        Comparator.comparing(Review::getReviewDate).reversed()
+                );
 
                 double averageRating = reviewDAO.calculateAverageRatingForProduct(productId);
 
