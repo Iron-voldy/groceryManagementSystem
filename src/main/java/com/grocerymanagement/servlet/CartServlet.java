@@ -134,6 +134,9 @@ public class CartServlet extends HttpServlet {
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // Update cart count in session
+        session.setAttribute("cartItemCount", cart.getItems().size());
+
         request.setAttribute("cart", cart);
         request.setAttribute("cartTotal", cartTotal);
 
@@ -268,6 +271,9 @@ public class CartServlet extends HttpServlet {
         String productId = request.getParameter("productId");
         String quantityStr = request.getParameter("quantity");
 
+        // Log received parameters
+        LOGGER.info("Updating cart - ProductID: " + productId + ", Quantity: " + quantityStr);
+
         // Validate inputs
         if (productId == null || quantityStr == null) {
             sendJsonResponse(response, false, "Invalid parameters");
@@ -304,8 +310,8 @@ public class CartServlet extends HttpServlet {
 
         Product product = productOptional.get();
 
-        // Check stock availability
-        if (quantity > product.getStockQuantity()) {
+        // Check stock availability if quantity is greater than 0
+        if (quantity > 0 && quantity > product.getStockQuantity()) {
             sendJsonResponse(response, false,
                     "Insufficient stock (Available: " + product.getStockQuantity() + ")",
                     product.getStockQuantity());
@@ -352,9 +358,11 @@ public class CartServlet extends HttpServlet {
             int cartItemCount = cart.getItems().size();
             session.setAttribute("cartItemCount", cartItemCount);
 
+            LOGGER.info("Cart updated successfully - Items: " + cartItemCount + ", Total: " + cartTotal);
             sendJsonResponse(response, true, "Cart updated",
                     cartItemCount, cartTotal.doubleValue());
         } else {
+            LOGGER.warning("Failed to update cart in database");
             sendJsonResponse(response, false, "Failed to update cart");
         }
     }
