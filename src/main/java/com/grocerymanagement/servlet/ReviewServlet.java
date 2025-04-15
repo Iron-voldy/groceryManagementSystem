@@ -87,6 +87,11 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
         String pathInfo = request.getPathInfo();
 
+        // Fix: Check for null pathInfo and provide a default
+        if (pathInfo == null) {
+            pathInfo = "/list";
+        }
+
         try {
             switch (pathInfo) {
                 case "/create":
@@ -395,7 +400,7 @@ public class ReviewServlet extends HttpServlet {
         // Get product info
         Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
 
-        // Set review attribute regardless of product availability
+        // Always set the review attribute
         request.setAttribute("review", review);
 
         if (productOptional.isPresent()) {
