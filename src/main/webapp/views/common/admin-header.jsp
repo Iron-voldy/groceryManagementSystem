@@ -67,6 +67,11 @@
                         </a>
                     </li>
                     <li>
+                        <a href="${pageContext.request.contextPath}/inventory/list" class="sidebar-link ${param.active == 'inventory' ? 'active' : ''}">
+                            Inventory
+                        </a>
+                    </li>
+                    <li>
                         <a href="${pageContext.request.contextPath}/views/admin/reviews.jsp" class="sidebar-link ${param.active == 'reviews' ? 'active' : ''}">
                             Reviews
                         </a>
