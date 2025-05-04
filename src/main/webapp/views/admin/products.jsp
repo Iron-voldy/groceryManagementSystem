@@ -1,447 +1,655 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
-<%@ page import="com.grocerymanagement.config.FileInitializationUtil" %>
-<%@ page import="com.grocerymanagement.dao.ProductDAO" %>
-<%@ page import="com.grocerymanagement.model.Product" %>
-<%@ page import="java.util.List" %>
-<%@ page import="java.time.format.DateTimeFormatter" %>
-
-<%
-    // Load products directly in the JSP
-    FileInitializationUtil fileInitUtil = new FileInitializationUtil(application);
-    ProductDAO productDAO = new ProductDAO(fileInitUtil);
-    List<Product> products = productDAO.getAllProducts();
-    request.setAttribute("products", products);
-    request.setAttribute("totalProducts", products.size());
-
-    // Add a formatter for LocalDateTime
-    request.setAttribute("dateFormatter", DateTimeFormatter.ofPattern("MMM d, yyyy"));
-%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 <jsp:include page="/views/common/admin-header.jsp">
-    <jsp:param name="title" value="Manage Products" />
+    <jsp:param name="title" value="Product Management - Admin Dashboard" />
     <jsp:param name="active" value="products" />
 </jsp:include>
 
-<div class="admin-products">
-    <div class="page-header">
-        <h1 class="page-title">Products</h1>
-        <div class="page-actions">
-            <a href="${pageContext.request.contextPath}/views/product/add-product.jsp" class="btn btn-primary">
-                <i class="fas fa-plus">+</i> Add New Product
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">Product Management</h1>
+        <div class="admin-actions">
+            <a href="${pageContext.request.contextPath}/views/admin/add-product.jsp" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Product
             </a>
         </div>
     </div>
 
-    <!-- Filter and Search -->
-    <div class="filter-section">
-        <form id="filter-form" action="${pageContext.request.contextPath}/product/list" method="get">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <input type="text" name="searchTerm" placeholder="Search products..." value="${param.searchTerm}">
-                </div>
-
-                <div class="filter-group">
-                    <select name="category">
-                        <option value="">All Categories</option>
-                        <option value="Fresh Products" ${param.category == 'Fresh Products' ? 'selected' : ''}>Fresh Products</option>
-                        <option value="Dairy" ${param.category == 'Dairy' ? 'selected' : ''}>Dairy</option>
-                        <option value="Vegetables" ${param.category == 'Vegetables' ? 'selected' : ''}>Vegetables</option>
-                        <option value="Fruits" ${param.category == 'Fruits' ? 'selected' : ''}>Fruits</option>
-                        <option value="Pantry Items" ${param.category == 'Pantry Items' ? 'selected' : ''}>Pantry Items</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <select name="stock">
-                        <option value="">All Stock</option>
-                        <option value="in-stock" ${param.stock == 'in-stock' ? 'selected' : ''}>In Stock</option>
-                        <option value="low-stock" ${param.stock == 'low-stock' ? 'selected' : ''}>Low Stock</option>
-                        <option value="out-of-stock" ${param.stock == 'out-of-stock' ? 'selected' : ''}>Out of Stock</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <select name="sort">
-                        <option value="name-asc" ${param.sort == 'name-asc' ? 'selected' : ''}>Name (A-Z)</option>
-                        <option value="name-desc" ${param.sort == 'name-desc' ? 'selected' : ''}>Name (Z-A)</option>
-                        <option value="price-asc" ${param.sort == 'price-asc' ? 'selected' : ''}>Price (Low to High)</option>
-                        <option value="price-desc" ${param.sort == 'price-desc' ? 'selected' : ''}>Price (High to Low)</option>
-                        <option value="stock-asc" ${param.sort == 'stock-asc' ? 'selected' : ''}>Stock (Low to High)</option>
-                        <option value="stock-desc" ${param.sort == 'stock-desc' ? 'selected' : ''}>Stock (High to Low)</option>
-                    </select>
-                </div>
-
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary">Apply</button>
-                    <a href="${pageContext.request.contextPath}/product/list" class="btn btn-secondary">Reset</a>
-                </div>
+    <!-- Filters & Sorting Section -->
+    <div class="admin-filters">
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="category-filter">Category</label>
+                <select id="category-filter" class="form-control" onchange="filterProducts('category', this.value)">
+                    <option value="">All Categories</option>
+                    <option value="Fresh Products" ${param.category eq 'Fresh Products' ? 'selected' : ''}>Fresh Products</option>
+                    <option value="Dairy" ${param.category eq 'Dairy' ? 'selected' : ''}>Dairy</option>
+                    <option value="Vegetables" ${param.category eq 'Vegetables' ? 'selected' : ''}>Vegetables</option>
+                    <option value="Fruits" ${param.category eq 'Fruits' ? 'selected' : ''}>Fruits</option>
+                    <option value="Pantry Items" ${param.category eq 'Pantry Items' ? 'selected' : ''}>Pantry Items</option>
+                </select>
             </div>
-        </form>
-    </div>
 
-    <!-- Bulk Actions -->
-    <div class="bulk-actions">
-        <div class="bulk-action-group">
-            <select id="bulk-action">
-                <option value="">Bulk Actions</option>
-                <option value="delete">Delete</option>
-                <option value="update-stock">Update Stock</option>
-                <option value="update-category">Update Category</option>
-            </select>
-            <button id="apply-bulk-action" class="btn btn-sm">Apply</button>
+            <div class="filter-group">
+                <label for="stock-filter">Stock Status</label>
+                <select id="stock-filter" class="form-control" onchange="filterProducts('stock', this.value)">
+                    <option value="">All Stock Levels</option>
+                    <option value="instock" ${param.stock eq 'instock' ? 'selected' : ''}>In Stock</option>
+                    <option value="lowstock" ${param.stock eq 'lowstock' ? 'selected' : ''}>Low Stock (< 10)</option>
+                    <option value="outofstock" ${param.stock eq 'outofstock' ? 'selected' : ''}>Out of Stock</option>
+                </select>
+            </div>
         </div>
 
-        <div id="product-table-stats" class="table-stats">
-            Showing ${products.size()} of ${totalProducts} products
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search products..." value="${param.search || ''}">
+                <button onclick="searchProducts()" class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Products Table -->
-    <div class="table-container">
-        <table class="data-table" id="products-table" data-item-type="product">
+    <!-- Sort Controls -->
+    <div class="admin-sort-controls">
+        <div class="sort-label">Sort by:</div>
+        <div class="sort-options">
+            <a href="#" onclick="sortProducts('name', '${currentSortBy eq 'name' && currentSortOrder eq 'asc' ? 'desc' : 'asc'}')"
+               class="sort-option ${currentSortBy eq 'name' ? 'active' : ''}">
+                Name
+                <c:if test="${currentSortBy eq 'name'}">
+                    <i class="fas fa-sort-${currentSortOrder eq 'asc' ? 'up' : 'down'}"></i>
+                </c:if>
+            </a>
+
+            <a href="#" onclick="sortProducts('category', '${currentSortBy eq 'category' && currentSortOrder eq 'asc' ? 'desc' : 'asc'}')"
+               class="sort-option ${currentSortBy eq 'category' ? 'active' : ''}">
+                Category
+                <c:if test="${currentSortBy eq 'category'}">
+                    <i class="fas fa-sort-${currentSortOrder eq 'asc' ? 'up' : 'down'}"></i>
+                </c:if>
+            </a>
+
+            <a href="#" onclick="sortProducts('price', '${currentSortBy eq 'price' && currentSortOrder eq 'asc' ? 'desc' : 'asc'}')"
+               class="sort-option ${currentSortBy eq 'price' ? 'active' : ''}">
+                Price
+                <c:if test="${currentSortBy eq 'price'}">
+                    <i class="fas fa-sort-${currentSortOrder eq 'asc' ? 'up' : 'down'}"></i>
+                </c:if>
+            </a>
+
+            <a href="#" onclick="sortProducts('stock', '${currentSortBy eq 'stock' && currentSortOrder eq 'asc' ? 'desc' : 'asc'}')"
+               class="sort-option ${currentSortBy eq 'stock' ? 'active' : ''}">
+                Stock
+                <c:if test="${currentSortBy eq 'stock'}">
+                    <i class="fas fa-sort-${currentSortOrder eq 'asc' ? 'up' : 'down'}"></i>
+                </c:if>
+            </a>
+        </div>
+    </div>
+
+    <!-- Sort Info -->
+    <c:if test="${not empty currentSortBy}">
+        <div class="sort-info">
+            <p>
+                Sorted by: <strong>${currentSortBy}</strong>
+                (${currentSortOrder eq 'asc' ? 'ascending' : 'descending'})
+            </p>
+        </div>
+    </c:if>
+
+    <!-- Product Table -->
+    <div class="table-responsive">
+        <table class="admin-table">
             <thead>
                 <tr>
-                    <th width="30">
-                        <input type="checkbox" id="select-all">
-                    </th>
-                    <th data-sort="id">ID</th>
-                    <th data-sort="name" data-default-sort="asc">Product Name</th>
-                    <th data-sort="category">Category</th>
-                    <th data-sort="price">Price</th>
-                    <th data-sort="stock">Stock</th>
-                    <th data-sort="updated">Last Updated</th>
+                    <th>Image</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Last Updated</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <c:forEach var="product" items="${products}">
-                    <tr data-id="${product.productId}">
-                        <td>
-                            <input type="checkbox" name="selected-items" value="${product.productId}">
-                        </td>
-                        <td>${product.productId.substring(0, 8)}</td>
-                        <td>${product.name}</td>
-                        <td>${product.category}</td>
-                        <td data-price="${product.price}">$<fmt:formatNumber value="${product.price}" pattern="#,##0.00"/></td>
-                        <td data-stock="${product.stockQuantity}">
-                            <span class="stock-badge ${product.stockQuantity > 10 ? 'in-stock' : product.stockQuantity > 0 ? 'low-stock' : 'out-of-stock'}">
-                                ${product.stockQuantity}
-                            </span>
-                        </td>
-                        <td data-date="${product.lastUpdated.format(dateFormatter)}">
-                            ${product.lastUpdated.format(dateFormatter)}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}" class="btn btn-sm">View</a>
-                                <a href="${pageContext.request.contextPath}/views/product/product-edit.jsp?productId=${product.productId}" class="btn btn-sm">Edit</a>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="${product.productId}">Delete</button>
-                            </div>
-                        </td>
-                    </tr>
-                </c:forEach>
+                <c:choose>
+                    <c:when test="${not empty products}">
+                        <c:forEach var="product" items="${products}">
+                            <tr>
+                                <td class="product-image">
+                                    <c:choose>
+                                        <c:when test="${not empty product.imagePath}">
+                                            <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}" class="thumbnail">
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="no-image">No Image</div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td>${fn:substring(product.productId, 0, 8)}...</td>
+                                <td>${product.name}</td>
+                                <td>${product.category}</td>
+                                <td>$<fmt:formatNumber value="${product.price}" pattern="#,##0.00"/></td>
+                                <td>
+                                    <span class="stock-badge ${product.stockQuantity == 0 ? 'out-of-stock' : (product.stockQuantity < 10 ? 'low-stock' : 'in-stock')}">
+                                        ${product.stockQuantity}
+                                    </span>
+                                </td>
+                                <td><fmt:formatDate value="${product.lastUpdated}" pattern="MMM dd, yyyy" /></td>
+                                <td class="actions">
+                                    <div class="action-buttons">
+                                        <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}" class="btn btn-sm btn-info" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/views/admin/edit-product.jsp?productId=${product.productId}" class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button onclick="confirmDelete('${product.productId}', '${product.name}')" class="btn btn-sm btn-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </c:when>
+                    <c:otherwise>
+                        <tr>
+                            <td colspan="8" class="no-data">No products found</td>
+                        </tr>
+                    </c:otherwise>
+                </c:choose>
             </tbody>
         </table>
     </div>
 
-    <!-- Add/Edit Product Modal -->
-    <div id="product-modal" class="modal">
+    <!-- Pagination (if needed) -->
+    <c:if test="${totalProducts > 10}">
+        <div class="pagination">
+            <!-- Pagination implementation here -->
+        </div>
+    </c:if>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Add New Product</h2>
-                <span class="close-modal">&times;</span>
+                <h2>Confirm Delete</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="product-form" action="${pageContext.request.contextPath}/product/add" method="post" data-validate="true">
-                    <input type="hidden" id="product-id" name="productId">
-
-                    <div class="form-group">
-                        <label for="name">Product Name</label>
-                        <input type="text" id="name" name="name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="category">Category</label>
-                            <select id="category" name="category" required>
-                                <option value="">Select Category</option>
-                                <option value="Fresh Products">Fresh Products</option>
-                                <option value="Dairy">Dairy</option>
-                                <option value="Vegetables">Vegetables</option>
-                                <option value="Fruits">Fruits</option>
-                                <option value="Pantry Items">Pantry Items</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="price">Price ($)</label>
-                            <input type="number" id="price" name="price" min="0.01" step="0.01" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="stockQuantity">Stock Quantity</label>
-                        <input type="number" id="stockQuantity" name="stockQuantity" min="0" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" rows="4" required></textarea>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Product</button>
-                        <button type="button" class="btn btn-secondary close-modal">Cancel</button>
-                    </div>
-                </form>
+                <p>Are you sure you want to delete the product: <span id="deleteProductName"></span>?</p>
+                <p class="warning">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="deleteProduct()" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-.admin-products {
-    padding-bottom: 40px;
+.admin-container {
+    padding: 2rem;
 }
 
-.page-header {
+.admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 2rem;
 }
 
-.page-title {
-    margin: 0;
-    color: var(--dark-text);
+.admin-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.admin-filters {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f5f7fb;
+    border-radius: 10px;
 }
 
 .filter-section {
-    background-color: var(--dark-surface);
-    border-radius: var(--border-radius);
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: var(--card-shadow);
-}
-
-.filter-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end;
+    gap: 1rem;
 }
 
 .filter-group {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.form-control {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
     min-width: 150px;
 }
 
-.filter-actions {
+.search-section {
     display: flex;
-    gap: 10px;
+    align-items: flex-end;
 }
 
-.bulk-actions {
+.search-box {
+    position: relative;
+    min-width: 300px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.search-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    padding: 0 0.75rem;
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+.admin-sort-controls {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 1rem;
 }
 
-.bulk-action-group {
+.sort-label {
+    font-weight: 600;
+    margin-right: 1rem;
+    color: #6c757d;
+}
+
+.sort-options {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    gap: 0.75rem;
 }
 
-.table-stats {
-    color: var(--light-text);
+.sort-option {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-option:hover {
+    background-color: #e9ecef;
+}
+
+.sort-option.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.sort-info {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th, .admin-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-table th {
+    background-color: #f5f7fb;
+    font-weight: 600;
+    color: #333;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.no-image {
+    width: 50px;
+    height: 50px;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #999;
+    border-radius: 5px;
 }
 
 .stock-badge {
     display: inline-block;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 40px;
 }
 
 .in-stock {
-    background-color: rgba(76, 175, 80, 0.2);
-    color: var(--success);
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
 }
 
 .low-stock {
-    background-color: rgba(255, 152, 0, 0.2);
-    color: var(--warning);
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #FFC107;
 }
 
 .out-of-stock {
-    background-color: rgba(244, 67, 54, 0.2);
-    color: var(--danger);
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #F44336;
 }
 
 .action-buttons {
     display: flex;
-    gap: 5px;
+    gap: 0.5rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #388E3C;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
 }
 
 /* Modal Styles */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9999;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
-    background-color: var(--dark-surface);
-    margin: 50px auto;
-    border-radius: var(--border-radius);
-    width: 90%;
-    max-width: 600px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-    animation: modalFadeIn 0.3s;
-}
-
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    background-color: white;
+    margin: 10% auto;
+    width: 500px;
+    max-width: 90%;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
 }
 
 .modal-header {
+    padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #eee;
 }
 
 .modal-header h2 {
     margin: 0;
-    font-size: 20px;
-    color: var(--dark-text);
+    font-size: 1.5rem;
+    color: #333;
 }
 
-.close-modal {
-    color: var(--light-text);
-    font-size: 24px;
+.close {
+    font-size: 1.5rem;
     cursor: pointer;
 }
 
-.close-modal:hover {
-    color: var(--danger);
-}
-
 .modal-body {
-    padding: 20px;
+    padding: 1.5rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .filter-row, .bulk-actions {
+.modal-footer {
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.warning {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+@media (max-width: 992px) {
+    .admin-filters {
         flex-direction: column;
+        gap: 1rem;
     }
 
-    .filter-group, .bulk-action-group {
+    .search-section {
         width: 100%;
     }
 
-    .action-buttons {
-        flex-wrap: wrap;
+    .search-box {
+        width: 100%;
     }
 }
 </style>
 
 <script>
-// Show/hide modal
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('product-modal');
-    const addButton = document.querySelector('.page-actions .btn-primary');
-    const closeButtons = document.querySelectorAll('.close-modal');
+// Current product ID to delete
+let currentProductIdToDelete = null;
 
-    // Show modal when add button is clicked
-    if (addButton) {
-        addButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Reset form
-            document.getElementById('product-form').reset();
-            document.getElementById('product-id').value = '';
-            document.getElementById('modal-title').textContent = 'Add New Product';
-            document.getElementById('product-form').action = '${pageContext.request.contextPath}/product/add';
+// Function to filter products
+function filterProducts(type, value) {
+    const urlParams = new URLSearchParams(window.location.search);
 
-            // Show modal
-            modal.style.display = 'block';
-        });
-    }
-
-    // Close modal when close button is clicked
-    closeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            modal.style.display = 'none';
-        });
-    });
-
-    // Close modal when clicking outside the modal
-    window.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+    // Keep existing parameters except the one being changed
+    Object.keys(request.parameterMap).forEach(param => {
+        if (param !== type && param !== 'page') {
+            urlParams.set(param, request.parameterMap[param][0]);
         }
     });
 
-    // Edit product
-    const editButtons = document.querySelectorAll('.action-buttons .btn:nth-child(2)');
-    editButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const productId = this.closest('tr').getAttribute('data-id');
+    if (value) {
+        urlParams.set(type, value);
+    } else {
+        urlParams.delete(type);
+    }
 
-            // Fetch product details and populate form
-            fetch(`${contextPath}/product/details?productId=${productId}&format=json`)
-            .then(response => response.json())
-            .then(product => {
-                document.getElementById('product-id').value = product.productId;
-                document.getElementById('name').value = product.name;
-                document.getElementById('category').value = product.category;
-                document.getElementById('price').value = product.price;
-                document.getElementById('stockQuantity').value = product.stockQuantity;
-                document.getElementById('description').value = product.description;
+    window.location.href = "${pageContext.request.contextPath}/views/admin/products.jsp?" + urlParams.toString();
+}
 
-                document.getElementById('modal-title').textContent = 'Edit Product';
-                document.getElementById('product-form').action = '${pageContext.request.contextPath}/product/update';
+// Function to search products
+function searchProducts() {
+    const searchTerm = document.getElementById('search-input').value.trim();
+    const urlParams = new URLSearchParams(window.location.search);
 
-                // Show modal
-                modal.style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error fetching product details:', error);
-                alert('Failed to load product details. Please try again.');
-            });
-        });
+    // Keep existing parameters except search and page
+    Object.keys(request.parameterMap).forEach(param => {
+        if (param !== 'search' && param !== 'page') {
+            urlParams.set(param, request.parameterMap[param][0]);
+        }
     });
 
-    // Delete product
-    const deleteButtons = document.querySelectorAll('.delete-btn');
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.getAttribute('data-id');
-            if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-                window.location.href = `${pageContext.request.contextPath}/product/delete?productId=${productId}`;
-            }
-        });
-    });
+    if (searchTerm) {
+        urlParams.set('search', searchTerm);
+    } else {
+        urlParams.delete('search');
+    }
+
+    window.location.href = "${pageContext.request.contextPath}/views/admin/products.jsp?" + urlParams.toString();
+}
+
+// Function to sort products
+function sortProducts(sortBy, sortOrder) {
+    window.location.href = "${pageContext.request.contextPath}/product/sort?sortBy=" + sortBy +
+        "&sortOrder=" + sortOrder +
+        "&adminView=true" +
+        getExistingQueryParams();
+}
+
+// Function to get existing query parameters
+function getExistingQueryParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let params = '';
+
+    // Keep existing parameters except sort-related ones
+    const paramsToKeep = ['category', 'search', 'stock'];
+    for (const param of paramsToKeep) {
+        if (urlParams.has(param)) {
+            params += "&" + param + "=" + urlParams.get(param);
+        }
+    }
+
+    return params;
+}
+
+// Function to confirm delete
+function confirmDelete(productId, name) {
+    currentProductIdToDelete = productId;
+    document.getElementById('deleteProductName').textContent = name;
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+// Function to close modal
+function closeModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Function to delete product
+function deleteProduct() {
+    if (currentProductIdToDelete) {
+        window.location.href = "${pageContext.request.contextPath}/product/delete?productId=" + currentProductIdToDelete;
+    }
+    closeModal();
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Add event listener to search input
+document.getElementById('search-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchProducts();
+    }
 });
 </script>
 
