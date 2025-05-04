@@ -6,7 +6,7 @@ import com.grocerymanagement.dao.ProductDAO;
 import com.grocerymanagement.model.Cart;
 import com.grocerymanagement.model.Product;
 import com.grocerymanagement.model.User;
-
+import com.grocerymanagement.model.Order;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -48,13 +48,15 @@ public class CartServlet extends HttpServlet {
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/view")) {
                 viewCart(request, response);
+            } else if (pathInfo.equals("/checkout")) {
+                proceedToCheckout(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error in cart view", e);
+            LOGGER.log(Level.SEVERE, "Error in cart processing", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "An error occurred while viewing the cart");
+                    "An error occurred while processing cart request");
         }
     }
 
@@ -547,6 +549,52 @@ public class CartServlet extends HttpServlet {
                 ",\"cartTotal\":" + cartTotal + "}");
         out.flush();
     }
+
+    private void proceedToCheckout(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        User user = (User) session.getAttribute("user");
+
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        Optional<Cart> cartOptional = cartDAO.getCartByUserId(user.getUserId());
+
+        if (!cartOptional.isPresent() || cartOptional.get().getItems().isEmpty()) {
+            request.setAttribute("error", "Your cart is empty");
+            request.getRequestDispatcher("/views/cart/cart-view.jsp").forward(request, response);
+            return;
+        }
+
+        Cart cart = cartOptional.get();
+
+        // Convert Cart to Order
+        Order order = new Order(user.getUserId());
+
+        cart.getItems().forEach(cartItem -> {
+            Optional<Product> productOptional = productDAO.getProductById(cartItem.getProductId());
+
+            if (productOptional.isPresent()) {
+                Product product = productOptional.get();
+                Order.OrderItem orderItem = new Order.OrderItem(
+                        product.getProductId(),
+                        product.getName(),
+                        cartItem.getQuantity(),
+                        product.getPrice()
+                );
+                order.addItem(orderItem);
+            }
+        });
+
+        // Store order in session for checkout
+        session.setAttribute("pendingOrder", order);
+
+        // Redirect to payment checkout page
+        request.getRequestDispatcher("/views/payment/payment-checkout.jsp").forward(request, response);
+    }
+
 
     /**
      * Escape special characters in JSON string

@@ -35,7 +35,7 @@
                         <a href="${pageContext.request.contextPath}/views/user/register.jsp" class="nav-link ${param.active == 'register' ? 'active' : ''}">Register</a>
                     </c:when>
                     <c:otherwise>
-                        <a href="${pageContext.request.contextPath}/order/my-orders" class="nav-link ${param.active == 'orders' ? 'active' : ''}">My Orders</a>
+                        <a href="${pageContext.request.contextPath}/order/user-orders" class="nav-link ${param.active == 'orders' ? 'active' : ''}">My Orders</a>
                         <a href="${pageContext.request.contextPath}/review/user" class="nav-link ${param.active == 'reviews' ? 'active' : ''}">My Reviews</a>
                         <a href="${pageContext.request.contextPath}/views/user/profile.jsp" class="nav-link ${param.active == 'profile' ? 'active' : ''}">Profile</a>
 

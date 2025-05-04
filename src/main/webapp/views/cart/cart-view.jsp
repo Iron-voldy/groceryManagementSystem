@@ -51,8 +51,12 @@
                     <form action="${pageContext.request.contextPath}/cart/clear" method="post" onsubmit="return confirm('Are you sure you want to clear your cart?')">
                         <button type="submit" class="btn btn-secondary">Clear Cart</button>
                     </form>
-                    <a href="${pageContext.request.contextPath}/checkout" class="btn btn-primary">Proceed to Checkout</a>
-                </div>
+<div class="cart-actions">
+    <a href="${pageContext.request.contextPath}/cart/checkout" class="btn btn-primary">
+        Proceed to Checkout
+    </a>
+</div>
+</div>
             </div>
         </c:otherwise>
     </c:choose>
