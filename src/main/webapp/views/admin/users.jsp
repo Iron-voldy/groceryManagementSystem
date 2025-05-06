@@ -100,7 +100,7 @@
                         <td>${user.username}</td>
                         <td>${user.email}</td>
                         <td>
-                            <span class="role-badge role-${user.role.toLowerCase()}">
+                            <span class="role-badge role-${fn:toLowerCase(user.role)}">
                                 ${user.role}
                             </span>
                         </td>

@@ -602,53 +602,54 @@
                 </div>
             </div>
 
+            <!-- Update the href attributes in the sidebar menu -->
             <nav class="sidebar-menu">
                 <ul>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/dashboard.jsp" class="menu-link ${param.active == 'dashboard' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/dashboard" class="menu-link ${param.active == 'dashboard' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span>
                             <span class="menu-text">Dashboard</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/products.jsp" class="menu-link ${param.active == 'products' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/products" class="menu-link ${param.active == 'products' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-box"></i></span>
                             <span class="menu-text">Products</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/inventory.jsp" class="menu-link ${param.active == 'inventory' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/inventory" class="menu-link ${param.active == 'inventory' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-warehouse"></i></span>
                             <span class="menu-text">Inventory</span>
                             <span class="menu-badge">3</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/orders.jsp" class="menu-link ${param.active == 'orders' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/orders" class="menu-link ${param.active == 'orders' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-shopping-cart"></i></span>
                             <span class="menu-text">Orders</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/users.jsp" class="menu-link ${param.active == 'users' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/users" class="menu-link ${param.active == 'users' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-users"></i></span>
                             <span class="menu-text">Customers</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/reviews.jsp" class="menu-link ${param.active == 'reviews' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/reviews" class="menu-link ${param.active == 'reviews' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-star"></i></span>
                             <span class="menu-text">Reviews</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/transactions.jsp" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/transactions" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
                             <span class="menu-text">Transactions</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/views/admin/settings.jsp" class="menu-link ${param.active == 'settings' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/admin/settings" class="menu-link ${param.active == 'settings' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-cog"></i></span>
                             <span class="menu-text">Settings</span>
                         </a>

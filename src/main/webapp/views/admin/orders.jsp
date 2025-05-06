@@ -91,7 +91,7 @@
             </thead>
             <tbody>
                 <c:forEach var="order" items="${orders}">
-                    <tr data-id="${order.orderId}" class="status-${order.status.toLowerCase()}">
+                    <tr data-id="${order.orderId}" class="status-${fn:toLowerCase(order.status)}">
                         <td>
                             <input type="checkbox" name="selected-items" value="${order.orderId}">
                         </td>
