@@ -2,6 +2,17 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%@ page import="java.time.LocalDateTime" %>
+<%@ page import="java.time.ZoneId" %>
+<%@ page import="java.util.Date" %>
+
+<%!
+    // Helper method to convert LocalDateTime to Date
+    private static Date convertToDate(LocalDateTime localDateTime) {
+        return localDateTime == null ? null :
+            Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+%>
 
 <jsp:include page="/views/common/header.jsp">
     <jsp:param name="title" value="Order Confirmation" />
@@ -17,9 +28,13 @@
         <div class="order-details">
             <h2>Order Summary</h2>
             <div class="order-info">
-                <p><strong>Order Number:</strong> ${order.orderId.substring(0,8)}</p>
+                <p><strong>Order Number:</strong> ${fn:substring(order.orderId, 0, 8)}</p>
                 <p><strong>Order Date:</strong>
-                    <fmt:formatDate value="${order.orderDate}" pattern="MMM dd, yyyy HH:mm"/>
+                    <%
+                        LocalDateTime orderDate = ((com.grocerymanagement.model.Order)request.getAttribute("order")).getOrderDate();
+                        Date convertedDate = convertToDate(orderDate);
+                    %>
+                    <fmt:formatDate value="<%= convertedDate %>" pattern="MMM dd, yyyy HH:mm"/>
                 </p>
                 <p><strong>Status:</strong> ${order.status}</p>
             </div>
