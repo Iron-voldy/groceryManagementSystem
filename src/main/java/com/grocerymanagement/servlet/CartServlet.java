@@ -6,7 +6,9 @@ import com.grocerymanagement.dao.ProductDAO;
 import com.grocerymanagement.model.Cart;
 import com.grocerymanagement.model.Product;
 import com.grocerymanagement.model.User;
+
 import com.grocerymanagement.model.Order;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -161,27 +163,39 @@ public class CartServlet extends HttpServlet {
         String productId = request.getParameter("productId");
         String quantityStr = request.getParameter("quantity");
 
+        // Log all request parameters for debugging
+        LOGGER.info("Request Parameters: ");
+        request.getParameterMap().forEach((key, value) ->
+                LOGGER.info("Key: " + key + ", Value: " + String.join(",", value)));
+
+        // Log received parameters
+        LOGGER.info("Adding to cart - ProductID: " + (productId != null ? productId : "null") +
+                ", Quantity: " + (quantityStr != null ? quantityStr : "null"));
+
         // Validate inputs
-        if (productId == null || quantityStr == null) {
-            sendJsonResponse(response, false, "Invalid parameters");
+        if (productId == null || productId.trim().isEmpty()) {
+            LOGGER.warning("Invalid product ID: Empty or null");
+            sendJsonResponse(response, false, "Invalid product ID");
             return;
         }
 
-        int quantity;
-        try {
-            quantity = Integer.parseInt(quantityStr);
-            if (quantity <= 0) {
-                sendJsonResponse(response, false, "Quantity must be positive");
-                return;
+        // Fix: Set default quantity to 1 if not provided or invalid
+        int quantity = 1;
+        if (quantityStr != null && !quantityStr.trim().isEmpty()) {
+            try {
+                quantity = Integer.parseInt(quantityStr);
+                if (quantity <= 0) {
+                    quantity = 1; // Default to 1 if negative or zero
+                }
+            } catch (NumberFormatException e) {
+                LOGGER.warning("Invalid quantity format: " + quantityStr + ", defaulting to 1");
             }
-        } catch (NumberFormatException e) {
-            sendJsonResponse(response, false, "Invalid quantity");
-            return;
         }
 
         // Check if product exists
         Optional<Product> productOptional = productDAO.getProductById(productId);
         if (!productOptional.isPresent()) {
+            LOGGER.warning("Product not found for ID: " + productId);
             sendJsonResponse(response, false, "Product not found");
             return;
         }
@@ -251,9 +265,11 @@ public class CartServlet extends HttpServlet {
             int cartItemCount = cart.getItems().size();
             session.setAttribute("cartItemCount", cartItemCount);
 
+            LOGGER.info("Cart updated successfully - Item count: " + cartItemCount + ", Total: " + cartTotal);
             sendJsonResponse(response, true, "Item added to cart",
                     cartItemCount, cartTotal.doubleValue());
         } else {
+            LOGGER.severe("Failed to save cart for user: " + currentUser.getUserId());
             sendJsonResponse(response, false, "Failed to add item to cart");
         }
     }
@@ -468,7 +484,6 @@ public class CartServlet extends HttpServlet {
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-
 
     /**
      * Clear entire cart

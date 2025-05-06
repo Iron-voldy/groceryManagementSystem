@@ -25,15 +25,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-@WebServlet(urlPatterns = {
-        "/order/list",
-        "/order",
-        "/orders",
-        "/order/details",
-        "/order/create",
-        "/order/update",
-        "/order/cancel"
-})
+@WebServlet("/order/*")
 public class OrderServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(OrderServlet.class.getName());
 
@@ -43,35 +35,34 @@ public class OrderServlet extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-        try {
-            FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
-            orderDAO = new OrderDAO(fileInitUtil);
-            productDAO = new ProductDAO(fileInitUtil);
-            userDAO = new UserDAO(fileInitUtil);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error initializing OrderServlet", e);
-            throw new ServletException("Could not initialize OrderServlet", e);
-        }
+        FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
+        orderDAO = new OrderDAO(fileInitUtil);
+        productDAO = new ProductDAO(fileInitUtil);
+        userDAO = new UserDAO(fileInitUtil);
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
 
+        if (pathInfo == null) {
+            pathInfo = "/list";
+        }
+
         try {
-            // Determine the action based on path
-            if (servletPath.equals("/order/list") ||
-                    servletPath.equals("/order") ||
-                    servletPath.equals("/orders")) {
-                // List orders (default admin view)
-                listOrders(request, response);
-            } else if (servletPath.equals("/order/details")) {
-                // Show specific order details
-                showOrderDetails(request, response);
-            } else {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            switch (pathInfo) {
+                case "/list":
+                    listOrders(request, response);
+                    break;
+                case "/details":
+                    showOrderDetails(request, response);
+                    break;
+                case "/user-orders":
+                    listUserOrders(request, response);
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (Exception e) {
             handleError(request, response, e);
@@ -81,27 +72,27 @@ public class OrderServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
 
         try {
-            if (servletPath.equals("/order/create")) {
-                createOrder(request, response);
-            } else if (servletPath.equals("/order/update")) {
-                updateOrder(request, response);
-            } else if (servletPath.equals("/order/cancel")) {
-                cancelOrder(request, response);
-            } else {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            switch (pathInfo) {
+                case "/create":
+                    createOrder(request, response);
+                    break;
+                case "/update":
+                    updateOrder(request, response);
+                    break;
+                case "/cancel":
+                    cancelOrder(request, response);
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (Exception e) {
             handleError(request, response, e);
         }
     }
 
-    /**
-     * List orders with pagination and filtering
-     */
     private void listOrders(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // Ensure only admin can list orders
@@ -111,7 +102,7 @@ public class OrderServlet extends HttpServlet {
             return;
         }
 
-        // Pagination parameters
+        // Pagination and filtering parameters
         int page = 1;
         int pageSize = 10;
         try {
@@ -130,52 +121,44 @@ public class OrderServlet extends HttpServlet {
             try {
                 statusFilter = Order.OrderStatus.valueOf(statusParam.toUpperCase());
             } catch (IllegalArgumentException e) {
-                LOGGER.warning("Invalid status filter: " + statusParam);
+                // Log and ignore invalid status
+                System.err.println("Invalid status filter: " + statusParam);
             }
         }
 
         // Search term
-        String searchTerm = request.getParameter("search");
+        String searchTerm = request.getParameter("searchTerm");
 
-        // Get all orders (with filtering)
-        List<Order> allOrders = orderDAO.getAllOrders();
+        // Get filtered and paginated orders
+        List<Order> orders = new ArrayList<>();
+        int totalOrders = 0;
+        int totalPages = 0;
 
-        // Apply filters
-        List<Order> filteredOrders = allOrders.stream()
-                .filter(order -> {
-                    // Status filter
-                    if (statusFilter != null && order.getStatus() != statusFilter) {
-                        return false;
-                    }
+        try {
+            // Get filtered and paginated orders
+            orders = orderDAO.getOrdersWithFilter(
+                    page, pageSize, statusFilter, searchTerm
+            );
 
-                    // Search term filter
-                    if (searchTerm != null && !searchTerm.isEmpty()) {
-                        String searchLower = searchTerm.toLowerCase();
-                        return order.getOrderId().toLowerCase().contains(searchLower) ||
-                                order.getUserId().toLowerCase().contains(searchLower);
-                    }
+            // Get total order count for pagination
+            totalOrders = orderDAO.getTotalOrderCount(statusFilter, searchTerm);
+            totalPages = (int) Math.ceil((double) totalOrders / pageSize);
 
-                    return true;
-                })
-                .collect(Collectors.toList());
-
-        // Pagination
-        int totalOrders = filteredOrders.size();
-        int totalPages = (int) Math.ceil((double) totalOrders / pageSize);
-
-        // Adjust page number if out of bounds
-        page = Math.max(1, Math.min(page, totalPages));
-
-        // Get paginated orders
-        int startIndex = (page - 1) * pageSize;
-        int endIndex = Math.min(startIndex + pageSize, totalOrders);
-        List<Order> paginatedOrders = filteredOrders.subList(startIndex, endIndex);
+            // Ensure page is within valid range
+            page = Math.max(1, Math.min(page, totalPages));
+        } catch (Exception e) {
+            // Log the error
+            System.err.println("Error retrieving orders: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         // Set attributes for view
-        request.setAttribute("orders", paginatedOrders);
+        request.setAttribute("orders", orders);
         request.setAttribute("totalOrders", totalOrders);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("currentPage", page);
+
+        // Set filter parameters for view
         request.setAttribute("currentStatus", statusParam);
         request.setAttribute("currentSearch", searchTerm);
 
@@ -183,9 +166,6 @@ public class OrderServlet extends HttpServlet {
         request.getRequestDispatcher("/views/admin/orders.jsp").forward(request, response);
     }
 
-    /**
-     * Show details of a specific order
-     */
     private void showOrderDetails(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         User user = getCurrentUser(request);
@@ -215,9 +195,19 @@ public class OrderServlet extends HttpServlet {
         request.getRequestDispatcher("/views/order/order-details.jsp").forward(request, response);
     }
 
-    /**
-     * Create a new order
-     */
+    private void listUserOrders(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        User user = getCurrentUser(request);
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        List<Order> userOrders = orderDAO.getOrdersByUserId(user.getUserId());
+        request.setAttribute("orders", userOrders);
+        request.getRequestDispatcher("/views/order/user-orders.jsp").forward(request, response);
+    }
+
     private void createOrder(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         User user = getCurrentUser(request);
@@ -254,7 +244,7 @@ public class OrderServlet extends HttpServlet {
                 int quantity = Integer.parseInt(quantities[i]);
 
                 // Create order item
-                OrderItem orderItem = new OrderItem(
+                OrderItem orderItem = order.createOrderItem(
                         product.getProductId(),
                         product.getName(),
                         quantity,
@@ -278,9 +268,6 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Update an existing order
-     */
     private void updateOrder(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         User user = getCurrentUser(request);
@@ -307,10 +294,10 @@ public class OrderServlet extends HttpServlet {
             return;
         }
 
+        // Update order logic here (similar to create order)
         // Clear existing items
         order.setItems(new ArrayList<>());
 
-        // Get new order items
         String[] productIds = request.getParameterValues("productId");
         String[] quantities = request.getParameterValues("quantity");
 
@@ -325,7 +312,7 @@ public class OrderServlet extends HttpServlet {
                     Product product = productOptional.get();
                     int quantity = Integer.parseInt(quantities[i]);
 
-                    OrderItem orderItem = new OrderItem(
+                    OrderItem orderItem = order.createOrderItem(
                             product.getProductId(),
                             product.getName(),
                             quantity,
@@ -350,9 +337,6 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Cancel an existing order
-     */
     private void cancelOrder(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         User user = getCurrentUser(request);
@@ -404,9 +388,13 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Handle errors consistently
-     */
+    // Helper method to get current user from session
+    private User getCurrentUser(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        return session != null ? (User) session.getAttribute("user") : null;
+    }
+
+    // Error handling method
     private void handleError(HttpServletRequest request, HttpServletResponse response, Exception e)
             throws ServletException, IOException {
         LOGGER.log(Level.SEVERE, "Error processing order request", e);
@@ -425,152 +413,11 @@ public class OrderServlet extends HttpServlet {
         request.getRequestDispatcher(errorPage).forward(request, response);
     }
 
-    /**
-     * Get current user from session
-     */
-    private User getCurrentUser(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        return session != null ? (User) session.getAttribute("user") : null;
-    }
+    // Additional methods for bulk operations or advanced filtering could be added here
 
-    // Additional utility methods can be added here if needed
-
-    /**
-     * Bulk update order statuses (for admin use)
-     */
-    private void bulkUpdateOrderStatus(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = getCurrentUser(request);
-        if (user == null || user.getRole() != User.UserRole.ADMIN) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access required");
-            return;
-        }
-
-        try {
-            // Parse order IDs and new status from request body
-            java.io.BufferedReader reader = request.getReader();
-            StringBuilder jsonBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
-
-            // Parse JSON (you'd typically use a JSON library in a real application)
-            org.json.JSONObject jsonObject = new org.json.JSONObject(jsonBuilder.toString());
-
-            // Get order IDs and status
-            org.json.JSONArray orderIdsJson = jsonObject.getJSONArray("orderIds");
-            String statusStr = jsonObject.getString("status");
-
-            // Convert JSON array to list of order IDs
-            List<String> orderIds = new ArrayList<>();
-            for (int i = 0; i < orderIdsJson.length(); i++) {
-                orderIds.add(orderIdsJson.getString(i));
-            }
-
-            // Convert status
-            Order.OrderStatus newStatus = Order.OrderStatus.valueOf(statusStr);
-
-            // Perform bulk update
-            int updatedCount = orderDAO.bulkUpdateOrderStatus(orderIds, newStatus);
-
-            // Prepare JSON response
-            org.json.JSONObject responseJson = new org.json.JSONObject();
-            responseJson.put("success", true);
-            responseJson.put("updatedCount", updatedCount);
-
-            // Send JSON response
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(responseJson.toString());
-        } catch (Exception e) {
-            // Handle JSON parsing or other errors
-            LOGGER.log(Level.SEVERE, "Error in bulk order update", e);
-
-            // Prepare error response
-            org.json.JSONObject errorJson = new org.json.JSONObject();
-            errorJson.put("success", false);
-            errorJson.put("message", "Failed to update orders: " + e.getMessage());
-
-            response.setContentType("application/json");
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(errorJson.toString());
-        }
-    }
-
-    /**
-     * Generate order invoice (PDF or printable view)
-     */
-    private void generateOrderInvoice(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = getCurrentUser(request);
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
-        }
-
-        String orderId = request.getParameter("orderId");
-        Optional<Order> orderOptional = orderDAO.getOrderById(orderId);
-
-        if (!orderOptional.isPresent()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Order not found");
-            return;
-        }
-
-        Order order = orderOptional.get();
-
-        // Ensure only order owner or admin can view invoice
-        if (!order.getUserId().equals(user.getUserId()) &&
-                user.getRole() != User.UserRole.ADMIN) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-            return;
-        }
-
-        // Determine output type (PDF or HTML)
-        String outputType = request.getParameter("type");
-        if ("pdf".equalsIgnoreCase(outputType)) {
-            generatePdfInvoice(request, response, order);
-        } else {
-            // Default to HTML invoice view
-            request.setAttribute("order", order);
-            request.getRequestDispatcher("/views/order/order-invoice.jsp").forward(request, response);
-        }
-    }
-
-    /**
-     * Generate PDF invoice (requires additional library like iText)
-     */
-    private void generatePdfInvoice(HttpServletRequest request, HttpServletResponse response,
-                                    Order order) throws ServletException, IOException {
-        try {
-            // Example using iText (you'd need to add iText dependency)
-            // com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(response.getOutputStream());
-            // com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
-            // com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
-
-            // Set response headers for PDF
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "inline; filename=order_" + order.getOrderId() + ".pdf");
-
-            // Generate PDF content
-            // TODO: Implement PDF generation logic
-
-            // Close document
-            // document.close();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error generating PDF invoice", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Could not generate invoice");
-        }
-    }
-
-    /**
-     * Override destroy method for cleanup
-     */
     @Override
     public void destroy() {
+        // Optional: Perform cleanup operations
         LOGGER.info("OrderServlet is being destroyed");
-        // Perform any necessary cleanup
     }
 }
