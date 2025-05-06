@@ -2,3 +2,4 @@
 1331a071-ef0b-4a6c-b514-96c052e8e683|CUSTOMER|Ironvoldy@gmail.com|Ntj+dI0rbX9umjmEWQ4G0w==:Hm3IdjgrNmVh1ckyJobqJKcWnq9fmzsDJtcgqNozJCM=|CUSTOMER|2025-04-13T21:44:33.1589562|true
 40d9e34e-c792-4f03-9500-2a9253abcacd|admin|admin@groceryshop.com|ZbzMuL/VG2zEARwMq10TZg==:21a8KCpZFywVdiN4cqlWd6MCx/VQpO+f6EXegzooXJo=|ADMIN|2025-04-13T22:56:43.2441213|true
 f3aea3c1-f2b9-4cfb-a52a-b1b59795b718|testuser|testuser1@gmail.com|ZSl4QAgFJZ+6o5TNnDoc4Q==:n+wOz6CMB4b+z+h9NVZdal7OmKx6Bu3mrCHHHabRLK4=|CUSTOMER|2025-05-04T06:27:53.9496673|true
+cd6215e7-c178-450b-8405-ef1e06bdc5ee|testman1|testman1@gmail.com|1UTAh23Z7ZCDvCY4tGimnA==:KSRStKZsUEA8R2utfctKUlNaT+jHv2XljW0wXl1BQFw=|CUSTOMER|2025-05-06T08:07:14.9945479|true
