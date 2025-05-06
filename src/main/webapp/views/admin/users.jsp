@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 <jsp:include page="/views/common/admin-header.jsp">
     <jsp:param name="title" value="Manage Users" />
@@ -100,7 +101,7 @@
                         <td>${user.username}</td>
                         <td>${user.email}</td>
                         <td>
-                            <span class="role-badge role-${fn:toLowerCase(user.role)}">
+                            <span class="role-badge role-${fn:toLowerCase(user.role.toString())}">
                                 ${user.role}
                             </span>
                         </td>

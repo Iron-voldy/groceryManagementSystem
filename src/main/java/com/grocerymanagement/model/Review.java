@@ -16,7 +16,11 @@ public class Review implements Serializable {
     private ReviewStatus status;
 
     public enum ReviewStatus {
-        APPROVED, PENDING, REJECTED
+        APPROVED, PENDING, REJECTED;
+
+        public String toLowerCase() {
+            return this.name().toLowerCase();
+        }
     }
 
     // Default constructor

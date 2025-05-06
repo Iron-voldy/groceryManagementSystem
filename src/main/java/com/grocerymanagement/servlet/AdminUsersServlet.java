@@ -61,7 +61,6 @@ public class AdminUsersServlet extends HttpServlet {
 
         request.setAttribute("users", users);
         request.setAttribute("totalUsers", userDAO.getAllUsers().size());
-
         request.getRequestDispatcher("/views/admin/users.jsp").forward(request, response);
     }
 }

@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 <jsp:include page="/views/common/admin-header.jsp">
     <jsp:param name="title" value="Manage Reviews" />
@@ -129,7 +130,7 @@
                                        </thead>
                                        <tbody>
                                            <c:forEach var="review" items="${reviews}">
-                                               <tr data-id="${review.reviewId}" class="status-${review.status.toLowerCase()}">
+                                               <tr data-id="${review.reviewId}" class="status-${review.status.toString().toLowerCase()}">
                                                    <td>
                                                        <input type="checkbox" name="selected-items" value="${review.reviewId}">
                                                    </td>
