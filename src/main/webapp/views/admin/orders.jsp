@@ -98,7 +98,7 @@
                         </td>
                         <td>${order.orderId.substring(0, 8)}</td>
                         <td>${order.userId}</td>
-                        <td data-date="${order.orderDate.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()}">
+                        <td data-date="${order.orderDate.getTime()}">
                             <fmt:formatDate value="${order.orderDate}" pattern="MMM d, yyyy" />
                             <span class="order-time"><fmt:formatDate value="${order.orderDate}" pattern="h:mm a" /></span>
                         </td>
