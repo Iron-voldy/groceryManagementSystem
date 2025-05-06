@@ -2,11 +2,9 @@ package com.grocerymanagement.servlet;
 
 import com.grocerymanagement.config.FileInitializationUtil;
 import com.grocerymanagement.dao.ProductDAO;
-import com.grocerymanagement.dao.ReviewDAO;
 import com.grocerymanagement.model.Product;
+import com.grocerymanagement.dao.ReviewDAO;
 import com.grocerymanagement.model.Review;
-import com.grocerymanagement.model.User;
-import com.grocerymanagement.service.ProductSortingService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -14,14 +12,13 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
@@ -73,54 +70,24 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String pathInfo = request.getPathInfo();
-
-        if (pathInfo == null) {
-            // Redirect to list products when no specific path is specified
-            response.sendRedirect(request.getContextPath() + "/product/list");
-            return;
-        }
-
-        switch (pathInfo) {
-            case "/list":
-                listProducts(request, response);
-                break;
-            case "/search":
-                searchProducts(request, response);
-                break;
-            case "/category":
-                listProductsByCategory(request, response);
-                break;
-            case "/details":
-                getProductDetails(request, response);
-                break;
-            case "/sort":
-                sortProducts(request, response);
-                break;
-            default:
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        }
-    }
-
     private void addProduct(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (!isAdminUser(session)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
-            return;
-        }
-
-        // Extract product information from form
-        String name = request.getParameter("name");
-        String category = request.getParameter("category");
-        String priceStr = request.getParameter("price");
-        String stockStr = request.getParameter("stockQuantity");
-        String description = request.getParameter("description");
-
         try {
+            String name = request.getParameter("name");
+            String category = request.getParameter("category");
+            String priceStr = request.getParameter("price");
+            String stockStr = request.getParameter("stockQuantity");
+            String description = request.getParameter("description");
+
+            // Validate inputs
+            if (name == null || name.trim().isEmpty() ||
+                    category == null || category.trim().isEmpty() ||
+                    priceStr == null || stockStr == null) {
+                request.setAttribute("error", "All fields are required");
+                request.getRequestDispatcher("/views/admin/add-product.jsp").forward(request, response);
+                return;
+            }
+
             BigDecimal price = new BigDecimal(priceStr);
             int stockQuantity = Integer.parseInt(stockStr);
 
@@ -130,224 +97,114 @@ public class ProductServlet extends HttpServlet {
             Part filePart = request.getPart("productImage");
             if (filePart != null && filePart.getSize() > 0) {
                 String fileName = getSubmittedFileName(filePart);
-
-                // Generate a unique filename to prevent duplicates
-                String fileExtension = "";
-                if (fileName.contains(".")) {
-                    fileExtension = fileName.substring(fileName.lastIndexOf("."));
-                }
+                String fileExtension = fileName.substring(fileName.lastIndexOf("."));
                 String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
-                // Save the file
                 String uploadPath = fileInitUtil.getImageUploadPath();
-                File uploadDir = new File(uploadPath);
-                if (!uploadDir.exists()) {
-                    uploadDir.mkdirs();
-                }
+                Files.createDirectories(Paths.get(uploadPath));
 
-                String filePath = new File(uploadDir, uniqueFileName).getAbsolutePath();
+                Path filePath = Paths.get(uploadPath, uniqueFileName);
 
                 try (InputStream input = filePart.getInputStream()) {
-                    Files.copy(input, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(input, filePath, StandardCopyOption.REPLACE_EXISTING);
                 }
 
-                // Save the relative path to the database
+                // Save relative path to database
                 newProduct.setImagePath("/uploads/images/" + uniqueFileName);
             }
 
             if (productDAO.createProduct(newProduct)) {
-                request.setAttribute("success", "Product added successfully");
+                // Redirect to product list or show success message
                 response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
             } else {
                 request.setAttribute("error", "Failed to add product");
-                request.getRequestDispatcher("/views/product/add-product.jsp").forward(request, response);
+                request.getRequestDispatcher("/views/admin/add-product.jsp").forward(request, response);
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid price or stock quantity");
-            request.getRequestDispatcher("/views/product/add-product.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/admin/add-product.jsp").forward(request, response);
         }
     }
 
     private void updateProduct(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Existing update product implementation...
-        // Code omitted for brevity
+        try {
+            String productId = request.getParameter("productId");
+            String name = request.getParameter("name");
+            String category = request.getParameter("category");
+            String priceStr = request.getParameter("price");
+            String stockStr = request.getParameter("stockQuantity");
+            String description = request.getParameter("description");
+
+            // Find existing product
+            Optional<Product> existingProductOpt = productDAO.getProductById(productId);
+            if (!existingProductOpt.isPresent()) {
+                request.setAttribute("error", "Product not found");
+                request.getRequestDispatcher("/views/admin/products.jsp").forward(request, response);
+                return;
+            }
+
+            Product product = existingProductOpt.get();
+            product.setName(name);
+            product.setCategory(category);
+            product.setPrice(new BigDecimal(priceStr));
+            product.setStockQuantity(Integer.parseInt(stockStr));
+            product.setDescription(description);
+
+            // Handle image upload
+            Part filePart = request.getPart("productImage");
+            if (filePart != null && filePart.getSize() > 0) {
+                String fileName = getSubmittedFileName(filePart);
+                String fileExtension = fileName.substring(fileName.lastIndexOf("."));
+                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+
+                String uploadPath = fileInitUtil.getImageUploadPath();
+                Files.createDirectories(Paths.get(uploadPath));
+
+                Path filePath = Paths.get(uploadPath, uniqueFileName);
+
+                try (InputStream input = filePart.getInputStream()) {
+                    Files.copy(input, filePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // Save relative path to database
+                product.setImagePath("/uploads/images/" + uniqueFileName);
+            }
+
+            if (productDAO.updateProduct(product)) {
+                response.sendRedirect(request.getContextPath() + "/views/admin/products.jsp");
+            } else {
+                request.setAttribute("error", "Failed to update product");
+                request.getRequestDispatcher("/views/admin/edit-product.jsp").forward(request, response);
+            }
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Invalid price or stock quantity");
+            request.getRequestDispatcher("/views/admin/edit-product.jsp").forward(request, response);
+        }
     }
 
     private void deleteProduct(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Existing delete product implementation...
-        // Code omitted for brevity
-    }
+        try {
+            String productId = request.getParameter("productId");
 
-    /**
-     * Lists all products with optional sorting.
-     */
-    private void listProducts(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // Get sort parameters
-        String sortBy = request.getParameter("sortBy");
-        String sortOrder = request.getParameter("sortOrder");
+            boolean deleted = productDAO.deleteProduct(productId);
 
-        // Get all products
-        List<Product> products = productDAO.getAllProducts();
-
-        // Apply sorting if requested
-        if (sortBy != null && !sortBy.isEmpty()) {
-            products = applySorting(products, sortBy, sortOrder);
-        }
-
-        // Set products as request attribute
-        request.setAttribute("products", products);
-        request.setAttribute("totalProducts", products.size());
-        request.setAttribute("currentSortBy", sortBy); // For highlighting active sort option
-        request.setAttribute("currentSortOrder", sortOrder); // For toggling sort direction
-
-        // Check if request is coming from admin area
-        String referer = request.getHeader("Referer");
-        boolean isAdminRequest = referer != null && referer.contains("/admin/");
-
-        // Forward to admin or customer product page based on context
-        if (isAdminRequest || isAdminUser(request.getSession(false))) {
-            request.getRequestDispatcher("/views/admin/products.jsp").forward(request, response);
-        } else {
-            request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+            // Return JSON response
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            if (deleted) {
+                response.getWriter().write("{\"success\": true, \"message\": \"Product deleted successfully\"}");
+            } else {
+                response.getWriter().write("{\"success\": false, \"message\": \"Failed to delete product\"}");
+            }
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"success\": false, \"message\": \"An error occurred: " + e.getMessage() + "\"}");
         }
     }
 
-    /**
-     * Dedicated endpoint for sorting products.
-     */
-    private void sortProducts(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String sortBy = request.getParameter("sortBy");
-        String sortOrder = request.getParameter("sortOrder");
-        String category = request.getParameter("category");
-        String searchTerm = request.getParameter("searchTerm");
-
-        List<Product> products;
-
-        // Get the appropriate product list based on context
-        if (category != null && !category.isEmpty()) {
-            products = productDAO.getProductsByCategory(category);
-        } else if (searchTerm != null && !searchTerm.isEmpty()) {
-            products = productDAO.searchProductsByName(searchTerm);
-        } else {
-            products = productDAO.getAllProducts();
-        }
-
-        // Apply Merge Sort
-        products = applySorting(products, sortBy, sortOrder);
-
-        // Set attributes
-        request.setAttribute("products", products);
-        request.setAttribute("totalProducts", products.size());
-        request.setAttribute("category", category);
-        request.setAttribute("searchTerm", searchTerm);
-        request.setAttribute("currentSortBy", sortBy);
-        request.setAttribute("currentSortOrder", sortOrder);
-
-        // Determine appropriate view
-        String view = "/views/product/product-list.jsp";
-        if (category != null && !category.isEmpty()) {
-            view = "/views/product/product-list.jsp";
-        } else if (searchTerm != null && !searchTerm.isEmpty()) {
-            view = "/views/product/product-search.jsp";
-        }
-
-        request.getRequestDispatcher(view).forward(request, response);
-    }
-
-    /**
-     * Apply Merge Sort based on specified criteria.
-     */
-    private List<Product> applySorting(List<Product> products, String sortBy, String sortOrder) {
-        Comparator<Product> comparator;
-
-        // Determine sort criterion
-        switch (sortBy) {
-            case "name":
-                comparator = ProductSortingService.sortByName();
-                break;
-            case "category":
-                comparator = ProductSortingService.sortByCategory();
-                break;
-            case "price":
-                comparator = ProductSortingService.sortByPrice();
-                break;
-            case "stock":
-                comparator = ProductSortingService.sortByStock();
-                break;
-            default:
-                // Default sort by name
-                comparator = ProductSortingService.sortByName();
-                break;
-        }
-
-        // Apply reverse order if requested
-        if ("desc".equals(sortOrder)) {
-            comparator = comparator.reversed();
-        }
-
-        // Apply Merge Sort algorithm
-        return ProductSortingService.mergeSort(products, comparator);
-    }
-
-    private void searchProducts(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String searchTerm = request.getParameter("searchTerm");
-        String sortBy = request.getParameter("sortBy");
-        String sortOrder = request.getParameter("sortOrder");
-
-        List<Product> products = productDAO.searchProductsByName(searchTerm);
-
-        // Apply sorting if requested
-        if (sortBy != null && !sortBy.isEmpty()) {
-            products = applySorting(products, sortBy, sortOrder);
-        }
-
-        request.setAttribute("products", products);
-        request.setAttribute("searchTerm", searchTerm);
-        request.setAttribute("currentSortBy", sortBy);
-        request.setAttribute("currentSortOrder", sortOrder);
-        request.getRequestDispatcher("/views/product/product-search.jsp").forward(request, response);
-    }
-
-    private void listProductsByCategory(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String category = request.getParameter("category");
-        String sortBy = request.getParameter("sortBy");
-        String sortOrder = request.getParameter("sortOrder");
-
-        List<Product> products = productDAO.getProductsByCategory(category);
-
-        // Apply sorting if requested
-        if (sortBy != null && !sortBy.isEmpty()) {
-            products = applySorting(products, sortBy, sortOrder);
-        }
-
-        request.setAttribute("products", products);
-        request.setAttribute("category", category);
-        request.setAttribute("currentSortBy", sortBy);
-        request.setAttribute("currentSortOrder", sortOrder);
-        request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
-    }
-
-    private void getProductDetails(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // Existing product details implementation...
-        // Code omitted for brevity
-    }
-
-    // Additional helper methods remain unchanged
-    // Code omitted for brevity
-
-    private boolean isAdminUser(HttpSession session) {
-        if (session == null) return false;
-        User user = (User) session.getAttribute("user");
-        return user != null && user.getRole() == User.UserRole.ADMIN;
-    }
-
+    // Utility method to extract filename from a Part
     private String getSubmittedFileName(Part part) {
         for (String cd : part.getHeader("content-disposition").split(";")) {
             if (cd.trim().startsWith("filename")) {
@@ -357,5 +214,153 @@ public class ProductServlet extends HttpServlet {
             }
         }
         return null;
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+
+        if (pathInfo == null) {
+            pathInfo = "/list";
+        }
+
+        switch (pathInfo) {
+            case "/list":
+                listProducts(request, response);
+                break;
+            case "/details":
+                showProductDetails(request, response);
+                break;
+            case "/category":
+                listProductsByCategory(request, response);
+                break;
+            case "/sort":
+                sortProducts(request, response);
+                break;
+            default:
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    private void listProducts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        List<Product> products = productDAO.getAllProducts();
+        request.setAttribute("products", products);
+        request.setAttribute("totalProducts", products.size());
+        request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+    }
+
+    private void listProductsByCategory(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String category = request.getParameter("category");
+        List<Product> products = productDAO.getProductsByCategory(category);
+        request.setAttribute("products", products);
+        request.setAttribute("category", category);
+        request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+    }
+
+    private void showProductDetails(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String productId = request.getParameter("productId");
+
+        Optional<Product> productOptional = productDAO.getProductById(productId);
+
+        if (productOptional.isPresent()) {
+            Product product = productOptional.get();
+
+            // Get reviews for this product
+            double averageRating = reviewDAO.calculateAverageRatingForProduct(productId);
+
+            // Get related products (same category)
+            List<Product> relatedProducts = productDAO.getAllProducts().stream()
+                    .filter(p -> p.getCategory().equals(product.getCategory()) &&
+                            !p.getProductId().equals(productId))
+                    .limit(4)
+                    .collect(Collectors.toList());
+
+            request.setAttribute("product", product);
+            request.setAttribute("averageRating", averageRating);
+            request.setAttribute("reviews", reviewDAO.getReviewsByProductId(
+                    productId,
+                    Review.ReviewStatus.APPROVED,
+                    null,
+                    Comparator.comparing(Review::getReviewDate).reversed()
+            ));
+            request.setAttribute("relatedProducts", relatedProducts);
+
+            request.getRequestDispatcher("/views/product/product-details.jsp").forward(request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found");
+        }
+    }
+
+    private void sortProducts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String sortBy = request.getParameter("sortBy");
+        String sortOrder = request.getParameter("sortOrder");
+        String category = request.getParameter("category");
+
+        List<Product> products;
+        if (category != null && !category.isEmpty()) {
+            products = productDAO.getProductsByCategory(category);
+        } else {
+            products = productDAO.getAllProducts();
+        }
+
+        // Apply sorting
+        Comparator<Product> comparator = createComparator(sortBy);
+
+        if (comparator != null) {
+            if ("desc".equals(sortOrder)) {
+                comparator = comparator.reversed();
+            }
+            products = products.stream()
+                    .sorted(comparator)
+                    .collect(Collectors.toList());
+        }
+
+        request.setAttribute("products", products);
+        request.setAttribute("category", category);
+        request.setAttribute("currentSortBy", sortBy);
+        request.setAttribute("currentSortOrder", sortOrder);
+        request.getRequestDispatcher("/views/product/product-list.jsp").forward(request, response);
+    }
+
+    private Comparator<Product> createComparator(String sortBy) {
+        if (sortBy == null) return null;
+
+        switch (sortBy) {
+            case "name":
+                return new Comparator<Product>() {
+                    @Override
+                    public int compare(Product p1, Product p2) {
+                        return p1.getName().compareToIgnoreCase(p2.getName());
+                    }
+                };
+            case "category":
+                return new Comparator<Product>() {
+                    @Override
+                    public int compare(Product p1, Product p2) {
+                        return p1.getCategory().compareToIgnoreCase(p2.getCategory());
+                    }
+                };
+            case "price":
+                return new Comparator<Product>() {
+                    @Override
+                    public int compare(Product p1, Product p2) {
+                        return p1.getPrice().compareTo(p2.getPrice());
+                    }
+                };
+            case "stock":
+                return new Comparator<Product>() {
+                    @Override
+                    public int compare(Product p1, Product p2) {
+                        return Integer.compare(p1.getStockQuantity(), p2.getStockQuantity());
+                    }
+                };
+            default:
+                return null;
+        }
     }
 }
