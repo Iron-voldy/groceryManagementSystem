@@ -23,22 +23,17 @@ public class AdminProductsServlet extends HttpServlet {
     public void init() throws ServletException {
         FileInitializationUtil fileInitUtil = new FileInitializationUtil(getServletContext());
         productDAO = new ProductDAO(fileInitUtil);
+        System.out.println("AdminProductsServlet: Initialized with product file path: " + fileInitUtil.getDataFilePath("products.txt"));
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        System.out.println("AdminProductsServlet: Fetching products");
+        System.out.println("AdminProductsServlet: Handling GET request");
+
+        // Fetch all products
         List<Product> products = productDAO.getAllProducts();
-        System.out.println("AdminProductsServlet: Found " + products.size() + " products");
-
-        // Apply sorting if requested
-        String sortBy = request.getParameter("sortBy");
-        String sortOrder = request.getParameter("sortOrder");
-
-        if (sortBy != null && !sortBy.isEmpty()) {
-            products = sortProducts(products, sortBy, sortOrder);
-        }
+        System.out.println("AdminProductsServlet: Fetched " + products.size() + " products");
 
         // Apply filtering if requested
         String category = request.getParameter("category");
@@ -47,24 +42,35 @@ public class AdminProductsServlet extends HttpServlet {
 
         if (category != null && !category.isEmpty()) {
             products = filterByCategory(products, category);
+            System.out.println("AdminProductsServlet: After category filter (" + category + "): " + products.size() + " products");
         }
 
         if (searchTerm != null && !searchTerm.isEmpty()) {
             products = searchProducts(products, searchTerm);
+            System.out.println("AdminProductsServlet: After search filter (" + searchTerm + "): " + products.size() + " products");
         }
 
         if (stockStatus != null && !stockStatus.isEmpty()) {
             products = filterByStockStatus(products, stockStatus);
+            System.out.println("AdminProductsServlet: After stock filter (" + stockStatus + "): " + products.size() + " products");
         }
 
+        // Apply sorting if requested
+        String sortBy = request.getParameter("sortBy");
+        String sortOrder = request.getParameter("sortOrder");
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            products = sortProducts(products, sortBy, sortOrder);
+            System.out.println("AdminProductsServlet: Sorted by " + sortBy + " (" + sortOrder + ")");
+        }
+
+        // Set request attributes
         request.setAttribute("products", products);
         request.setAttribute("totalProducts", products.size());
         request.setAttribute("currentSortBy", sortBy);
         request.setAttribute("currentSortOrder", sortOrder);
 
-        // Debug statement to check if products are being set correctly
-        System.out.println("AdminProductsServlet: Setting products attribute with " + products.size() + " products");
-
+        System.out.println("AdminProductsServlet: Forwarding to products.jsp with " + products.size() + " products");
         request.getRequestDispatcher("/views/admin/products.jsp").forward(request, response);
     }
 
@@ -115,14 +121,13 @@ public class AdminProductsServlet extends HttpServlet {
                     .collect(Collectors.toList());
         } else if ("lowstock".equals(stockStatus)) {
             return products.stream()
-                    .filter(product -> product.getStockQuantity() > 0 && product.getStockQuantity() < 10)
+                    .filter(product -> product.getStockQuantity() > 0 && product.getStockQuantity() <= 10)
                     .collect(Collectors.toList());
         } else if ("outofstock".equals(stockStatus)) {
             return products.stream()
                     .filter(product -> product.getStockQuantity() == 0)
                     .collect(Collectors.toList());
         }
-
         return products;
     }
 }

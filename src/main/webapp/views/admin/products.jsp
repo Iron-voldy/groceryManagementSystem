@@ -38,7 +38,7 @@
                 <select id="stock-filter" class="form-control" onchange="filterProducts('stock', this.value)">
                     <option value="">All Stock Levels</option>
                     <option value="instock" ${param.stock eq 'instock' ? 'selected' : ''}>In Stock</option>
-                    <option value="lowstock" ${param.stock eq 'lowstock' ? 'selected' : ''}>Low Stock (< 10)</option>
+                    <option value="lowstock" ${param.stock eq 'lowstock' ? 'selected' : ''}>Low Stock (≤ 10)</option>
                     <option value="outofstock" ${param.stock eq 'outofstock' ? 'selected' : ''}>Out of Stock</option>
                 </select>
             </div>
@@ -46,7 +46,7 @@
 
         <div class="search-section">
             <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search products..." value="${param.search || ''}">
+                <input type="text" id="search-input" placeholder="Search products..." value="${param.search}">
                 <button onclick="searchProducts()" class="search-btn">
                     <i class="fas fa-search"></i>
                 </button>
@@ -125,10 +125,10 @@
                                 <td class="product-image">
                                     <c:choose>
                                         <c:when test="${not empty product.imagePath}">
-                                            <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}" class="thumbnail">
+                                            <img src="${pageContext.request.contextPath}${product.imagePath}" alt="${product.name}" class="thumbnail" onerror="this.src='/uploads/images/no-image.jpg';">
                                         </c:when>
                                         <c:otherwise>
-                                            <div class="no-image">No Image</div>
+                                            <img src="/Uploads/images/no-image.jpg" alt="No Image" class="thumbnail">
                                         </c:otherwise>
                                     </c:choose>
                                 </td>
@@ -137,11 +137,11 @@
                                 <td>${product.category}</td>
                                 <td>$<fmt:formatNumber value="${product.price}" pattern="#,##0.00"/></td>
                                 <td>
-                                    <span class="stock-badge ${product.stockQuantity == 0 ? 'out-of-stock' : (product.stockQuantity < 10 ? 'low-stock' : 'in-stock')}">
+                                    <span class="stock-badge ${product.stockQuantity == 0 ? 'out-of-stock' : (product.stockQuantity <= 10 ? 'low-stock' : 'in-stock')}">
                                         ${product.stockQuantity}
                                     </span>
                                 </td>
-                                <td><fmt:formatDate value="${product.lastUpdated}" pattern="MMM dd, yyyy" /></td>
+                                <td><fmt:formatDate value="${product.lastUpdatedAsDate}" pattern="MMM dd, yyyy" /></td>
                                 <td class="actions">
                                     <div class="action-buttons">
                                         <a href="${pageContext.request.contextPath}/product/details?productId=${product.productId}" class="btn btn-sm btn-info" title="View">
@@ -160,7 +160,7 @@
                     </c:when>
                     <c:otherwise>
                         <tr>
-                            <td colspan="8" class="no-data">No products found</td>
+                            <td colspan="8" class="no-data">No products found. Try adjusting your filters or add a new product.</td>
                         </tr>
                     </c:otherwise>
                 </c:choose>
@@ -171,7 +171,10 @@
     <!-- Pagination (if needed) -->
     <c:if test="${totalProducts > 10}">
         <div class="pagination">
-            <!-- Pagination implementation here -->
+            <c:forEach begin="1" end="${totalPages}" var="pageNum">
+                <a href="${pageContext.request.contextPath}/admin/products?page=${pageNum}${not empty param.category ? '&category='.concat(param.category) : ''}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.stock ? '&stock='.concat(param.stock) : ''}${not empty param.sortBy ? '&sortBy='.concat(param.sortBy) : ''}${not empty param.sortOrder ? '&sortOrder='.concat(param.sortOrder) : ''}"
+                   class="${currentPage == pageNum ? 'active' : ''}">${pageNum}</a>
+            </c:forEach>
         </div>
     </c:if>
 
@@ -180,7 +183,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Confirm Delete</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <span class="close" onclick="closeModal()">×</span>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete the product: <span id="deleteProductName"></span>?</p>
@@ -474,6 +477,23 @@
     margin-top: 2rem;
 }
 
+.pagination a {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    text-decoration: none;
+}
+
+.pagination a.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.pagination a:hover {
+    background-color: #e9ecef;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -556,20 +576,17 @@ let currentProductIdToDelete = null;
 function filterProducts(type, value) {
     const urlParams = new URLSearchParams(window.location.search);
 
-    // Keep existing parameters except the one being changed
-    Object.keys(request.parameterMap).forEach(param => {
-        if (param !== type && param !== 'page') {
-            urlParams.set(param, request.parameterMap[param][0]);
-        }
-    });
+    // Remove page parameter to reset pagination
+    urlParams.delete('page');
 
+    // Set the new filter parameter
     if (value) {
         urlParams.set(type, value);
     } else {
         urlParams.delete(type);
     }
 
-    window.location.href = "${pageContext.request.contextPath}/views/admin/products.jsp?" + urlParams.toString();
+    window.location.href = "${pageContext.request.contextPath}/admin/products?" + urlParams.toString();
 }
 
 // Function to search products
@@ -577,12 +594,8 @@ function searchProducts() {
     const searchTerm = document.getElementById('search-input').value.trim();
     const urlParams = new URLSearchParams(window.location.search);
 
-    // Keep existing parameters except search and page
-    Object.keys(request.parameterMap).forEach(param => {
-        if (param !== 'search' && param !== 'page') {
-            urlParams.set(param, request.parameterMap[param][0]);
-        }
-    });
+    // Remove page parameter to reset pagination
+    urlParams.delete('page');
 
     if (searchTerm) {
         urlParams.set('search', searchTerm);
@@ -590,31 +603,20 @@ function searchProducts() {
         urlParams.delete('search');
     }
 
-    window.location.href = "${pageContext.request.contextPath}/views/admin/products.jsp?" + urlParams.toString();
+    window.location.href = "${pageContext.request.contextPath}/admin/products?" + urlParams.toString();
 }
 
 // Function to sort products
 function sortProducts(sortBy, sortOrder) {
-    window.location.href = "${pageContext.request.contextPath}/product/sort?sortBy=" + sortBy +
-        "&sortOrder=" + sortOrder +
-        "&adminView=true" +
-        getExistingQueryParams();
-}
-
-// Function to get existing query parameters
-function getExistingQueryParams() {
     const urlParams = new URLSearchParams(window.location.search);
-    let params = '';
 
-    // Keep existing parameters except sort-related ones
-    const paramsToKeep = ['category', 'search', 'stock'];
-    for (const param of paramsToKeep) {
-        if (urlParams.has(param)) {
-            params += "&" + param + "=" + urlParams.get(param);
-        }
-    }
+    // Remove page parameter to reset pagination
+    urlParams.delete('page');
 
-    return params;
+    urlParams.set('sortBy', sortBy);
+    urlParams.set('sortOrder', sortOrder);
+
+    window.location.href = "${pageContext.request.contextPath}/admin/products?" + urlParams.toString();
 }
 
 // Function to confirm delete
@@ -627,14 +629,56 @@ function confirmDelete(productId, name) {
 // Function to close modal
 function closeModal() {
     document.getElementById('deleteModal').style.display = 'none';
+    currentProductIdToDelete = null;
 }
 
 // Function to delete product
 function deleteProduct() {
     if (currentProductIdToDelete) {
-        window.location.href = "${pageContext.request.contextPath}/product/delete?productId=" + currentProductIdToDelete;
+        fetch('${pageContext.request.contextPath}/product/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'productId=' + encodeURIComponent(currentProductIdToDelete)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-id="${currentProductIdToDelete}"]`);
+                if (row) row.remove();
+                showNotification('Product deleted successfully');
+            } else {
+                showNotification(data.message || 'Failed to delete product', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting product:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        });
     }
     closeModal();
+}
+
+// Notification function
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
 }
 
 // Close modal when clicking outside of it
