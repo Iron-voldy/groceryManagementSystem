@@ -80,6 +80,11 @@
                                     <div class="action-buttons">
                                         <a href="${pageContext.request.contextPath}/order/details?orderId=${order.orderId}"
                                            class="btn btn-sm btn-primary">View</a>
+
+                                        <a href="${pageContext.request.contextPath}/order/edit?orderId=${order.orderId}"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
                                     </div>
                                 </td>
                             </tr>

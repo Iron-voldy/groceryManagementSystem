@@ -593,7 +593,7 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <a href="${pageContext.request.contextPath}/views/admin/dashboard.jsp" class="logo">
+                <a href="${pageContext.request.contextPath}/admin/dashboard" class="logo">
                     <i class="fas fa-shopping-basket logo-icon"></i>
                     <span class="logo-text">GroceryShop</span>
                 </a>
@@ -602,7 +602,7 @@
                 </div>
             </div>
 
-            <!-- Update the href attributes in the sidebar menu -->
+            <!-- Admin Navigation Menu -->
             <nav class="sidebar-menu">
                 <ul>
                     <li class="menu-item">
@@ -612,46 +612,58 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/products" class="menu-link ${param.active == 'products' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/product/list" class="menu-link ${param.active == 'products' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-box"></i></span>
                             <span class="menu-text">Products</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/inventory" class="menu-link ${param.active == 'inventory' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/inventory/list" class="menu-link ${param.active == 'inventory' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-warehouse"></i></span>
                             <span class="menu-text">Inventory</span>
                             <span class="menu-badge">3</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/orders" class="menu-link ${param.active == 'orders' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/order/list" class="menu-link ${param.active == 'orders' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-shopping-cart"></i></span>
                             <span class="menu-text">Orders</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/users" class="menu-link ${param.active == 'users' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/user/list" class="menu-link ${param.active == 'users' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-users"></i></span>
                             <span class="menu-text">Customers</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/reviews" class="menu-link ${param.active == 'reviews' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/review/list" class="menu-link ${param.active == 'reviews' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-star"></i></span>
                             <span class="menu-text">Reviews</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/transactions" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/payment/admin-transactions" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
                             <span class="menu-text">Transactions</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/admin/settings" class="menu-link ${param.active == 'settings' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/payment/saved-cards" class="menu-link ${param.active == 'payment-methods' ? 'active' : ''}">
+                            <span class="menu-icon"><i class="fas fa-wallet"></i></span>
+                            <span class="menu-text">Payment Methods</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="${pageContext.request.contextPath}/views/admin/settings.jsp" class="menu-link ${param.active == 'settings' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-cog"></i></span>
                             <span class="menu-text">Settings</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="${pageContext.request.contextPath}/" class="menu-link">
+                            <span class="menu-icon"><i class="fas fa-store"></i></span>
+                            <span class="menu-text">View Store</span>
                         </a>
                     </li>
                 </ul>
@@ -698,22 +710,42 @@
         <!-- Main Header -->
         <header class="main-header">
             <div class="header-search">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input" placeholder="Search...">
+                <form action="${pageContext.request.contextPath}/admin/search" method="get">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="query" class="search-input" placeholder="Search orders, products, users...">
+                </form>
             </div>
 
             <div class="header-actions">
-                <div class="action-item">
+                <a href="${pageContext.request.contextPath}/order/list?status=PENDING" class="action-item" title="Pending Orders">
                     <i class="fas fa-bell"></i>
                     <span class="action-badge">3</span>
-                </div>
-                <div class="action-item">
-                    <i class="fas fa-envelope"></i>
-                    <span class="action-badge">2</span>
-                </div>
-                <a href="${pageContext.request.contextPath}/user/logout" class="action-item" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
                 </a>
+                <a href="${pageContext.request.contextPath}/review/list?status=PENDING" class="action-item" title="Pending Reviews">
+                    <i class="fas fa-comment"></i>
+                    <span class="action-badge">2</span>
+                </a>
+                <a href="${pageContext.request.contextPath}/inventory/low-stock" class="action-item" title="Low Stock">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="action-badge">5</span>
+                </a>
+                <div class="dropdown">
+                    <a href="#" class="action-item" id="userDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Account">
+                        <i class="fas fa-user-circle"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/views/user/profile.jsp">
+                            <i class="fas fa-user mr-2"></i> Profile
+                        </a>
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/views/admin/settings.jsp">
+                            <i class="fas fa-cog mr-2"></i> Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/user/logout">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         </header>
 
