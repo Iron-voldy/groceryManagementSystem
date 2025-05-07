@@ -15,6 +15,10 @@ public class Review implements Serializable {
     private LocalDateTime reviewDate;
     private ReviewStatus status;
 
+    // Add these fields to store additional information
+    private String productName; // To store the product name
+    private String userName;    // To store the user name
+
     public enum ReviewStatus {
         APPROVED, PENDING, REJECTED;
 
@@ -60,6 +64,13 @@ public class Review implements Serializable {
 
     public ReviewStatus getStatus() { return status; }
     public void setStatus(ReviewStatus status) { this.status = status; }
+
+    // Add getters and setters for the new fields
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public String getUserName() { return userName; }
+    public void setUserName(String userName) { this.userName = userName; }
 
     // Convert to file string format for storage
     public String toFileString() {
