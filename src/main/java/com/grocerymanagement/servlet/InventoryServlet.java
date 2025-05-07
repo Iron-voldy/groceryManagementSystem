@@ -102,7 +102,7 @@ public class InventoryServlet extends HttpServlet {
 
         List<Inventory> inventoryList = inventoryDAO.getAllInventory();
         request.setAttribute("inventoryList", inventoryList);
-        request.getRequestDispatcher("/views/admin/inventory-management.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/admin/inventory.jsp").forward(request, response);
     }
 
     private void showAddInventoryForm(HttpServletRequest request, HttpServletResponse response)

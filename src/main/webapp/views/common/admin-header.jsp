@@ -34,17 +34,35 @@
             --danger: #dc3545;
             --warning: #ffc107;
             --info: #17a2b8;
-            --dark-text: #212529;
-            --light-text: #adb5bd;
+            --dark: #343a40;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --gray-dark: #495057;
+            --gray-light: #adb5bd;
 
             /* Background Colors */
-            --dark-surface: #ffffff;
-            --dark-surface-hover: #f8f9fa;
+            --bg-body: #f5f7fb;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+
+            /* Text Colors */
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-light: #adb5bd;
+            --text-white: #ffffff;
 
             /* Border and Shadow */
-            --border-color: #dee2e6;
-            --border-radius: 8px;
-            --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --border-color: #e9ecef;
+            --border-radius: 10px;
+            --box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+            --box-shadow-hover: 0 .5rem 1rem rgba(0,0,0,.15);
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 3rem;
 
             /* Sidebar */
             --sidebar-width: 250px;
@@ -54,15 +72,23 @@
             --header-height: 70px;
 
             /* Transitions */
-            --transition: all 0.3s ease;
+            --transition-speed: 0.3s;
+        }
+
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            color: var(--dark-text);
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
-            background-color: #f5f7fb;
+            position: relative;
         }
 
         a {
@@ -72,11 +98,9 @@
 
         ul {
             list-style: none;
-            padding: 0;
-            margin: 0;
         }
 
-        /* Dashboard Layout */
+        /* Layout */
         .dashboard-container {
             display: flex;
             min-height: 100vh;
@@ -85,14 +109,14 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background-color: var(--dark-surface);
+            background-color: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
             position: fixed;
             height: 100vh;
             overflow-y: auto;
             z-index: 1000;
-            transition: width var(--transition);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            transition: width var(--transition-speed);
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
         .sidebar-collapsed {
@@ -103,7 +127,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 15px;
+            padding: var(--spacing-md) var(--spacing-md);
             border-bottom: 1px solid var(--border-color);
             height: var(--header-height);
         }
@@ -114,22 +138,11 @@
             color: var(--primary);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--spacing-sm);
         }
 
         .logo-icon {
             font-size: 1.8rem;
-        }
-
-        .logo-text {
-            transition: opacity var(--transition);
-            white-space: nowrap;
-            overflow: hidden;
-        }
-
-        .sidebar-collapsed .logo-text {
-            opacity: 0;
-            width: 0;
         }
 
         .sidebar-toggle {
@@ -140,16 +153,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color var(--transition);
+            transition: background-color var(--transition-speed);
         }
 
         .sidebar-toggle:hover {
             background-color: var(--primary-light);
         }
 
-        /* Sidebar Menu */
         .sidebar-menu {
-            padding: 15px 0;
+            padding: var(--spacing-md) 0;
         }
 
         .menu-item {
@@ -159,12 +171,12 @@
         .menu-link {
             display: flex;
             align-items: center;
-            padding: 10px 15px;
-            color: var(--dark-text);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--text-secondary);
             font-weight: 500;
-            transition: all var(--transition);
+            transition: all var(--transition-speed);
             border-radius: 5px;
-            margin: 0 5px;
+            margin: 0 var(--spacing-xs);
         }
 
         .menu-link:hover {
@@ -181,12 +193,12 @@
         .menu-icon {
             width: 24px;
             text-align: center;
-            margin-right: 15px;
+            margin-right: var(--spacing-md);
             font-size: 1.2rem;
         }
 
         .menu-text {
-            transition: opacity var(--transition);
+            transition: opacity var(--transition-speed);
             white-space: nowrap;
             overflow: hidden;
         }
@@ -211,19 +223,18 @@
             right: 5px;
         }
 
-        /* User Info in Sidebar */
         .sidebar-footer {
             border-top: 1px solid var(--border-color);
-            padding: 15px;
+            padding: var(--spacing-md);
             position: sticky;
             bottom: 0;
-            background-color: var(--dark-surface);
+            background-color: var(--bg-sidebar);
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--spacing-sm);
         }
 
         .user-avatar {
@@ -239,7 +250,7 @@
         }
 
         .user-details {
-            transition: opacity var(--transition);
+            transition: opacity var(--transition-speed);
             white-space: nowrap;
             overflow: hidden;
         }
@@ -251,21 +262,21 @@
 
         .user-name {
             font-weight: 600;
-            color: var(--dark-text);
+            color: var(--text-primary);
         }
 
         .user-role {
             font-size: 0.8rem;
-            color: var(--light-text);
+            color: var(--text-secondary);
         }
 
         /* Main Content */
         .main-content {
             flex-grow: 1;
             margin-left: var(--sidebar-width);
-            transition: margin-left var(--transition);
-            padding: 20px;
-            padding-top: calc(var(--header-height) + 20px);
+            transition: margin-left var(--transition-speed);
+            padding: var(--spacing-lg);
+            padding-top: calc(var(--header-height) + var(--spacing-md));
         }
 
         .sidebar-collapsed + .main-content {
@@ -279,13 +290,13 @@
             right: 0;
             left: var(--sidebar-width);
             height: var(--header-height);
-            background-color: var(--dark-surface);
+            background-color: var(--bg-card);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
+            padding: 0 var(--spacing-xl);
             z-index: 900;
-            transition: left var(--transition);
+            transition: left var(--transition-speed);
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -301,10 +312,11 @@
 
         .search-input {
             width: 100%;
-            padding: 10px 40px 10px 15px;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            padding-left: 40px;
             border: 1px solid var(--border-color);
             border-radius: 30px;
-            transition: all var(--transition);
+            transition: all var(--transition-speed);
             font-size: 0.9rem;
         }
 
@@ -316,16 +328,16 @@
 
         .search-icon {
             position: absolute;
-            right: 15px;
+            left: var(--spacing-md);
             top: 50%;
             transform: translateY(-50%);
-            color: var(--light-text);
+            color: var(--text-secondary);
         }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: var(--spacing-md);
         }
 
         .action-item {
@@ -337,12 +349,12 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background-color var(--transition);
-            color: var(--light-text);
+            transition: background-color var(--transition-speed);
+            color: var(--text-secondary);
         }
 
         .action-item:hover {
-            background-color: var(--dark-surface-hover);
+            background-color: var(--light);
             color: var(--primary);
         }
 
@@ -358,44 +370,111 @@
             border-radius: 10px;
         }
 
-        /* Table Styles */
+        /* Table styles */
+        .table-container {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            overflow-x: auto;
+        }
+
         .data-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .data-table th, .data-table td {
-            padding: 12px 15px;
+        .data-table th,
+        .data-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
             text-align: left;
         }
 
         .data-table th {
             font-weight: 600;
-            color: var(--light-text);
+            color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
         }
 
         .data-table tbody tr {
             border-bottom: 1px solid var(--border-color);
-            transition: background-color var(--transition);
+            transition: background-color var(--transition-speed);
         }
 
         .data-table tbody tr:hover {
-            background-color: var(--dark-surface-hover);
+            background-color: rgba(0, 0, 0, 0.02);
         }
 
-        /* Button Styles */
+        .data-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        /* Page header styles */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        /* Filter section styles */
+        .filter-section {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--box-shadow);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: flex-end;
+        }
+
+        /* Button styles */
         .btn {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 8px 16px;
+            padding: 8px 15px;
             border-radius: var(--border-radius);
             font-weight: 500;
-            transition: all var(--transition);
-            border: none;
             cursor: pointer;
-            gap: 8px;
+            transition: all var(--transition-speed);
+            border: none;
+            text-decoration: none;
         }
 
         .btn-sm {
@@ -410,15 +489,17 @@
 
         .btn-primary:hover {
             background-color: var(--primary-dark);
-        }
-
-        .btn-secondary {
-            background-color: var(--secondary);
             color: white;
         }
 
+        .btn-secondary {
+            background-color: var(--light);
+            color: var(--text-primary);
+        }
+
         .btn-secondary:hover {
-            background-color: var(--secondary-dark);
+            background-color: var(--gray-light);
+            color: var(--text-primary);
         }
 
         .btn-danger {
@@ -427,132 +508,120 @@
         }
 
         .btn-danger:hover {
-            background-color: #c82333;
+            background-color: #bd2130;
+            color: white;
         }
 
         .btn-warning {
             background-color: var(--warning);
-            color: #212529;
+            color: var(--dark);
         }
 
         .btn-warning:hover {
             background-color: #e0a800;
+            color: var(--dark);
         }
 
-        /* Card Styles */
-        .card {
-            background-color: var(--dark-surface);
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .card-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border-color);
+        /* Status badge styles */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
             font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .card-body {
-            padding: 20px;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: white;
-            transition: var(--transition);
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-
-        /* Alert Styles */
-        .alert {
-            padding: 15px;
-            border-radius: var(--border-radius);
-            margin-bottom: 20px;
-        }
-
-        .alert-success {
-            background-color: var(--primary-light);
-            color: var(--primary-dark);
-            border-left: 4px solid var(--primary);
-        }
-
-        .alert-danger {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: var(--danger);
-            border-left: 4px solid var(--danger);
-        }
-
-        .alert-warning {
+        /* For order statuses */
+        .status-pending {
             background-color: rgba(255, 193, 7, 0.1);
-            color: #856404;
-            border-left: 4px solid var(--warning);
+            color: var(--warning);
         }
 
-        /* Notification Styling */
-        #notification-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
+        .status-processing {
+            background-color: rgba(33, 150, 243, 0.1);
+            color: var(--secondary);
         }
 
-        .notification {
+        .status-shipped {
+            background-color: rgba(156, 39, 176, 0.1);
+            color: #9c27b0;
+        }
+
+        .status-delivered {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+        }
+
+        .status-cancelled {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--danger);
+        }
+
+        /* For user roles */
+        .role-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-admin {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--danger);
+        }
+
+        .role-customer {
+            background-color: rgba(33, 150, 243, 0.1);
+            color: var(--secondary);
+        }
+
+        .role-staff {
+            background-color: rgba(156, 39, 176, 0.1);
+            color: #9c27b0;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: var(--spacing-lg);
+        }
+
+        .pagination a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 5px;
+            background-color: var(--bg-card);
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all var(--transition-speed);
+            box-shadow: var(--box-shadow);
+        }
+
+        .pagination a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .pagination a.active {
             background-color: var(--primary);
             color: white;
-            padding: 15px 20px;
-            margin-bottom: 10px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            max-width: 350px;
-            transform: translateX(120%);
-            opacity: 0;
-            transition: all 0.3s ease;
         }
 
-        .notification.show {
-            transform: translateX(0);
-            opacity: 1;
-        }
-
-        .notification.error {
-            background-color: var(--danger);
-        }
-
-        .notification.warning {
-            background-color: var(--warning);
-            color: #212529;
-        }
-
-        /* Responsive Adjustments */
+        /* Responsive adjustments */
         @media (max-width: 992px) {
             .sidebar {
                 width: var(--sidebar-collapsed-width);
             }
 
-            .logo-text, .menu-text, .user-details {
+            .menu-text, .user-details, .logo-text {
                 opacity: 0;
                 width: 0;
             }
@@ -567,22 +636,21 @@
         }
 
         @media (max-width: 768px) {
-            .main-header {
-                padding: 0 15px;
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
             }
 
             .header-search {
-                display: none;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .main-content {
-                padding: 15px;
-                padding-top: calc(var(--header-height) + 15px);
-            }
-
-            .action-item span {
                 display: none;
             }
         }
@@ -595,14 +663,13 @@
             <div class="sidebar-header">
                 <a href="${pageContext.request.contextPath}/admin/dashboard" class="logo">
                     <i class="fas fa-shopping-basket logo-icon"></i>
-                    <span class="logo-text">GroceryShop</span>
+                    <span class="logo-text">FreshCart</span>
                 </a>
                 <div class="sidebar-toggle" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </div>
             </div>
 
-            <!-- Admin Navigation Menu -->
             <nav class="sidebar-menu">
                 <ul>
                     <li class="menu-item">
@@ -611,12 +678,12 @@
                             <span class="menu-text">Dashboard</span>
                         </a>
                     </li>
-                    <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/product/list" class="menu-link ${param.active == 'products' ? 'active' : ''}">
-                            <span class="menu-icon"><i class="fas fa-box"></i></span>
-                            <span class="menu-text">Products</span>
-                        </a>
-                    </li>
+ <li class="menu-item">
+            <a href="${pageContext.request.contextPath}/views/admin/products.jsp" class="menu-link ${param.active == 'products' ? 'active' : ''}">
+                <span class="menu-icon"><i class="fas fa-box"></i></span>
+                <span class="menu-text">Products</span>
+            </a>
+        </li>
                     <li class="menu-item">
                         <a href="${pageContext.request.contextPath}/inventory/list" class="menu-link ${param.active == 'inventory' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-warehouse"></i></span>
@@ -631,7 +698,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/user/list" class="menu-link ${param.active == 'users' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/views/admin/users.jsp" class="menu-link ${param.active == 'users' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-users"></i></span>
                             <span class="menu-text">Customers</span>
                         </a>
@@ -643,27 +710,15 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/payment/admin-transactions" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
+                        <a href="${pageContext.request.contextPath}/views/admin/transactions.jsp" class="menu-link ${param.active == 'transactions' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-credit-card"></i></span>
                             <span class="menu-text">Transactions</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/payment/saved-cards" class="menu-link ${param.active == 'payment-methods' ? 'active' : ''}">
-                            <span class="menu-icon"><i class="fas fa-wallet"></i></span>
-                            <span class="menu-text">Payment Methods</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="${pageContext.request.contextPath}/views/admin/settings.jsp" class="menu-link ${param.active == 'settings' ? 'active' : ''}">
                             <span class="menu-icon"><i class="fas fa-cog"></i></span>
                             <span class="menu-text">Settings</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="${pageContext.request.contextPath}/" class="menu-link">
-                            <span class="menu-icon"><i class="fas fa-store"></i></span>
-                            <span class="menu-text">View Store</span>
                         </a>
                     </li>
                 </ul>
@@ -710,57 +765,25 @@
         <!-- Main Header -->
         <header class="main-header">
             <div class="header-search">
-                <form action="${pageContext.request.contextPath}/admin/search" method="get">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" name="query" class="search-input" placeholder="Search orders, products, users...">
-                </form>
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Search products, orders, customers...">
             </div>
 
             <div class="header-actions">
-                <a href="${pageContext.request.contextPath}/order/list?status=PENDING" class="action-item" title="Pending Orders">
+                <div class="action-item">
                     <i class="fas fa-bell"></i>
-                    <span class="action-badge">3</span>
-                </a>
-                <a href="${pageContext.request.contextPath}/review/list?status=PENDING" class="action-item" title="Pending Reviews">
-                    <i class="fas fa-comment"></i>
-                    <span class="action-badge">2</span>
-                </a>
-                <a href="${pageContext.request.contextPath}/inventory/low-stock" class="action-item" title="Low Stock">
-                    <i class="fas fa-exclamation-triangle"></i>
                     <span class="action-badge">5</span>
-                </a>
-                <div class="dropdown">
-                    <a href="#" class="action-item" id="userDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Account">
-                        <i class="fas fa-user-circle"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <a class="dropdown-item" href="${pageContext.request.contextPath}/views/user/profile.jsp">
-                            <i class="fas fa-user mr-2"></i> Profile
-                        </a>
-                        <a class="dropdown-item" href="${pageContext.request.contextPath}/views/admin/settings.jsp">
-                            <i class="fas fa-cog mr-2"></i> Settings
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="${pageContext.request.contextPath}/user/logout">
-                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                        </a>
-                    </div>
                 </div>
+                <div class="action-item">
+                    <i class="fas fa-envelope"></i>
+                    <span class="action-badge">2</span>
+                </div>
+                <a href="${pageContext.request.contextPath}/user/logout" class="action-item" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
-            <c:if test="${not empty param.message || not empty requestScope.message || not empty sessionScope.message}">
-                <div class="alert alert-success" role="alert">
-                    ${not empty param.message ? param.message : not empty requestScope.message ? requestScope.message : sessionScope.message}
-                </div>
-                <c:remove var="message" scope="session" />
-            </c:if>
-
-            <c:if test="${not empty param.error || not empty requestScope.error || not empty sessionScope.error}">
-                <div class="alert alert-danger" role="alert">
-                    ${not empty param.error ? param.error : not empty requestScope.error ? requestScope.error : sessionScope.error}
-                </div>
-                <c:remove var="error" scope="session" />
-            </c:if>
+            <!-- Content will be injected here -->
