@@ -87,7 +87,6 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
         String pathInfo = request.getPathInfo();
 
-        // Fix: Check for null pathInfo and provide a default
         if (pathInfo == null) {
             pathInfo = "/list";
         }
@@ -103,24 +102,23 @@ public class ReviewServlet extends HttpServlet {
                 case "/moderate":
                     moderateReview(request, response);
                     break;
-                case "/delete":  // Add support for POST delete
+                case "/delete":
                     deleteReview(request, response);
                     break;
-                case "/update-status":  // Add new endpoint for status updates
+                case "/update-status":
                     updateReviewStatus(request, response);
                     break;
-                case "/bulk-action":  // Add new endpoint for bulk actions
-                   // bulkActionReviews(request, response);
+                case "/bulk-action":
+                    // bulkActionReviews(request, response);
                     break;
                 default:
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Endpoint not found");
             }
         } catch (Exception e) {
             handleError(request, response, e);
         }
     }
 
-    // Method to display the create review form
     private void showCreateReviewForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -145,7 +143,6 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
     }
 
-    // Method to submit a new review
     private void createReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -159,17 +156,14 @@ public class ReviewServlet extends HttpServlet {
         String ratingStr = request.getParameter("rating");
         String reviewText = request.getParameter("reviewText");
 
-        // Log the parameters for debugging
         System.out.println("Creating review - ProductID: " + productId +
                 ", Rating: " + ratingStr +
                 ", Text length: " + (reviewText != null ? reviewText.length() : "null") +
                 ", User: " + currentUser.getUserId());
 
-        // Debug to see if the file exists and is writable
         String reviewFilePath = fileInitUtil.getDataFilePath("reviews.txt");
         System.out.println("Reviews file path: " + reviewFilePath);
 
-        // Detailed validation
         if (productId == null || productId.isEmpty()) {
             request.setAttribute("error", "Product ID is missing");
             request.setAttribute("product", productDAO.getProductById(productId).orElse(null));
@@ -179,7 +173,7 @@ public class ReviewServlet extends HttpServlet {
 
         if (ratingStr == null || ratingStr.isEmpty()) {
             request.setAttribute("error", "Rating is required");
-            request.setAttribute("reviewText", reviewText); // Preserve user input
+            request.setAttribute("reviewText", reviewText);
             request.setAttribute("product", productDAO.getProductById(productId).orElse(null));
             request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
             return;
@@ -192,10 +186,9 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
-        // Validate review text length (minimum 10 characters)
         if (reviewText.trim().length() < 10) {
             request.setAttribute("error", "Review text must be at least 10 characters long");
-            request.setAttribute("reviewText", reviewText); // Preserve user input
+            request.setAttribute("reviewText", reviewText);
             request.setAttribute("product", productDAO.getProductById(productId).orElse(null));
             request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
             return;
@@ -217,69 +210,55 @@ public class ReviewServlet extends HttpServlet {
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid rating. Please provide a rating between 1 and 5");
-            request.setAttribute("reviewText", reviewText); // Preserve user input
+            request.setAttribute("reviewText", reviewText);
             request.setAttribute("product", productOptional.get());
             request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
             return;
         }
 
-        // Check if user has already reviewed this product
         boolean hasReviewed = reviewDAO.hasUserReviewedProduct(currentUser.getUserId(), productId);
         if (hasReviewed) {
             request.setAttribute("error", "You have already reviewed this product");
-            request.setAttribute("reviewText", reviewText); // Preserve user input
+            request.setAttribute("reviewText", reviewText);
             request.setAttribute("product", productOptional.get());
             request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
             return;
         }
 
         try {
-            // Create and save the new review
             Review newReview = new Review(currentUser.getUserId(), productId, rating, reviewText);
-
-            // Set product name and user name
             newReview.setProductName(product.getName());
             newReview.setUserName(currentUser.getUsername());
 
-            // Check if user has purchased this product
             boolean hasPurchased = hasUserPurchasedProduct(currentUser.getUserId(), productId);
-
-            // Verified purchasers' reviews are auto-approved, others need moderation
             if (hasPurchased || currentUser.getRole() == User.UserRole.ADMIN) {
                 newReview.setStatus(Review.ReviewStatus.APPROVED);
             } else {
                 newReview.setStatus(Review.ReviewStatus.PENDING);
             }
 
-            // Try to create the review and handle the result
             boolean created = reviewDAO.createReview(newReview);
-
             if (created) {
-                // Set a success message and the review as attributes
                 request.setAttribute("success", "Review submitted successfully. " +
                         (!hasPurchased && currentUser.getRole() != User.UserRole.ADMIN ?
                                 "Your review will be visible after moderation." : ""));
                 request.setAttribute("review", newReview);
-
-                // Redirect to success page or back to product
                 request.getRequestDispatcher("/views/review/success.jsp").forward(request, response);
             } else {
                 request.setAttribute("error", "Failed to submit review. Please try again.");
-                request.setAttribute("reviewText", reviewText); // Preserve user input
+                request.setAttribute("reviewText", reviewText);
                 request.setAttribute("product", productOptional.get());
                 request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
             }
         } catch (Exception e) {
-            // Log the exception for debugging
             e.printStackTrace();
             request.setAttribute("error", "An error occurred: " + e.getMessage());
-            request.setAttribute("reviewText", reviewText); // Preserve user input
+            request.setAttribute("reviewText", reviewText);
             request.setAttribute("product", productOptional.get());
             request.getRequestDispatcher("/views/review/create-review.jsp").forward(request, response);
         }
     }
 
-    // Method to update an existing review
     private void updateReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -307,8 +286,6 @@ public class ReviewServlet extends HttpServlet {
         }
 
         Review review = reviewOptional.get();
-
-        // Ensure only the review owner or an admin can update
         if (!review.getUserId().equals(currentUser.getUserId()) &&
                 currentUser.getRole() != User.UserRole.ADMIN) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "You are not authorized to update this review");
@@ -324,23 +301,17 @@ public class ReviewServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid rating. Please provide a rating between 1 and 5");
             request.setAttribute("review", review);
-
-            // Get product for display
             Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
             if (productOptional.isPresent()) {
                 request.setAttribute("product", productOptional.get());
             }
-
             request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
             return;
         }
 
         try {
-            // Update review
             review.setRating(rating);
             review.setReviewText(reviewText);
-
-            // If not admin, set back to pending for re-moderation
             if (currentUser.getRole() != User.UserRole.ADMIN &&
                     review.getStatus() == Review.ReviewStatus.APPROVED) {
                 review.setStatus(Review.ReviewStatus.PENDING);
@@ -351,34 +322,25 @@ public class ReviewServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/review/details?reviewId=" + reviewId);
             } else {
                 request.setAttribute("error", "Failed to update review. Please try again.");
-
-                // Get product for display
                 Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
                 if (productOptional.isPresent()) {
                     request.setAttribute("product", productOptional.get());
                 }
-
                 request.setAttribute("review", review);
                 request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
             }
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "An error occurred: " + e.getMessage());
-
-            // Get product for display
             Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
             if (productOptional.isPresent()) {
                 request.setAttribute("product", productOptional.get());
             }
-
             request.setAttribute("review", review);
             request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
         }
     }
 
-
-
-    // Method to display the edit review form
     private void showEditReviewForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -397,34 +359,25 @@ public class ReviewServlet extends HttpServlet {
 
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
-            // Forward to the edit page which will handle the null review case
             request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
             return;
         }
 
         Review review = reviewOptional.get();
-
-        // Ensure only the review owner or an admin can edit
         if (!review.getUserId().equals(currentUser.getUserId()) &&
                 currentUser.getRole() != User.UserRole.ADMIN) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "You are not authorized to edit this review");
             return;
         }
 
-        // Get product info
         Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
-
-        // Always set the review attribute
         request.setAttribute("review", review);
-
         if (productOptional.isPresent()) {
             request.setAttribute("product", productOptional.get());
         }
-
         request.getRequestDispatcher("/views/review/edit-review.jsp").forward(request, response);
     }
 
-    // Method to delete a review
     private void deleteReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -463,7 +416,6 @@ public class ReviewServlet extends HttpServlet {
         }
 
         Review review = reviewOptional.get();
-
         if (!review.getUserId().equals(currentUser.getUserId()) &&
                 currentUser.getRole() != User.UserRole.ADMIN) {
             if (isAjaxRequest(request)) {
@@ -503,8 +455,6 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-
-    // Method to moderate a review (for admins)
     private void moderateReview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -547,7 +497,6 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // Method to show review details
     private void showReviewDetails(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -564,7 +513,6 @@ public class ReviewServlet extends HttpServlet {
 
         Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
         if (!reviewOptional.isPresent()) {
-            // Set null attributes so the JSP can handle the error case
             request.setAttribute("review", null);
             request.getRequestDispatcher("/views/review/review-details.jsp").forward(request, response);
             return;
@@ -572,18 +520,13 @@ public class ReviewServlet extends HttpServlet {
 
         Review review = reviewOptional.get();
         Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
-
-        // Always set the review attribute
         request.setAttribute("review", review);
-
         if (productOptional.isPresent()) {
             request.setAttribute("product", productOptional.get());
         }
-
         request.getRequestDispatcher("/views/review/review-details.jsp").forward(request, response);
     }
 
-    // Method to show all reviews for a product
     private void showProductReviews(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String productId = request.getParameter("productId");
@@ -598,7 +541,6 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
-        // Get approved reviews for the product
         List<Review> reviews = reviewDAO.getReviewsByProductId(
                 productId,
                 Review.ReviewStatus.APPROVED,
@@ -606,7 +548,6 @@ public class ReviewServlet extends HttpServlet {
                 Comparator.comparing(Review::getReviewDate).reversed()
         );
 
-        // Calculate average rating
         double averageRating = reviewDAO.calculateAverageRatingForProduct(productId);
         ReviewDAO.ReviewStatistics stats = reviewDAO.getProductReviewStatistics(productId);
 
@@ -617,7 +558,6 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/review/product-reviews.jsp").forward(request, response);
     }
 
-    // Method to list all reviews for the logged-in user
     private void listUserReviews(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
@@ -629,19 +569,15 @@ public class ReviewServlet extends HttpServlet {
         User currentUser = (User) session.getAttribute("user");
         List<Review> reviews = reviewDAO.getReviewsByUserId(currentUser.getUserId());
 
-        // Fetch product details for all reviews
         Map<String, Product> productMap = new HashMap<>();
         for (Review review : reviews) {
             Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
             if (productOptional.isPresent()) {
                 productMap.put(review.getProductId(), productOptional.get());
-                // Set the product name if it's not already set
                 if (review.getProductName() == null || review.getProductName().isEmpty()) {
                     review.setProductName(productOptional.get().getName());
                 }
             }
-
-            // Set the user name if it's not already set
             if (review.getUserName() == null || review.getUserName().isEmpty()) {
                 review.setUserName(currentUser.getUsername());
             }
@@ -652,7 +588,6 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/review/user-reviews.jsp").forward(request, response);
     }
 
-    // Method to list all reviews (admin only)
     private void listAllReviews(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!isAdminUser(request)) {
@@ -660,12 +595,10 @@ public class ReviewServlet extends HttpServlet {
             return;
         }
 
-        // Get filters from request
         String statusFilter = request.getParameter("status");
         String ratingFilter = request.getParameter("rating");
         String sortBy = request.getParameter("sort");
 
-        // Get all reviews with optional filtering
         List<Review> reviews;
         if (statusFilter != null && !statusFilter.isEmpty()) {
             try {
@@ -675,21 +608,16 @@ public class ReviewServlet extends HttpServlet {
                 reviews = getAllReviews();
             }
         } else {
-            // Get all reviews
             reviews = getAllReviews();
         }
 
-        // Add product and user names to reviews
         for (Review review : reviews) {
-            // Get product name if not set
             if (review.getProductName() == null || review.getProductName().isEmpty()) {
                 Optional<Product> productOptional = productDAO.getProductById(review.getProductId());
                 if (productOptional.isPresent()) {
                     review.setProductName(productOptional.get().getName());
                 }
             }
-
-            // Get user name if not set
             if (review.getUserName() == null || review.getUserName().isEmpty()) {
                 Optional<User> userOptional = userDAO.getUserById(review.getUserId());
                 if (userOptional.isPresent()) {
@@ -698,7 +626,6 @@ public class ReviewServlet extends HttpServlet {
             }
         }
 
-        // Calculate review stats
         int totalReviews = reviews.size();
         int approvedReviews = (int) reviews.stream()
                 .filter(r -> r.getStatus() == Review.ReviewStatus.APPROVED)
@@ -718,24 +645,17 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/admin/reviews.jsp").forward(request, response);
     }
 
-    // Helper method to get all reviews
     private List<Review> getAllReviews() {
-        // In a real database implementation, you'd have a method to get all reviews
-        // For file-based implementation, we'll get for all products
         return reviewDAO.getAllReviews();
     }
 
-    // Helper method to check if user has purchased a product
     private boolean hasUserPurchasedProduct(String userId, String productId) {
         List<Order> userOrders = orderDAO.getOrdersByUserId(userId);
-
-        // Check if any order contains the product
         return userOrders.stream()
                 .flatMap(order -> order.getItems().stream())
                 .anyMatch(item -> item.getProductId().equals(productId));
     }
 
-    // Helper method to check if the current user is an admin
     private boolean isAdminUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
@@ -745,23 +665,19 @@ public class ReviewServlet extends HttpServlet {
         return user.getRole() == User.UserRole.ADMIN;
     }
 
-    // Helper method to check if a request is an AJAX request
     private boolean isAjaxRequest(HttpServletRequest request) {
         return "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
     }
 
-    // Helper method to send a JSON response
     private void sendJsonResponse(HttpServletResponse response, boolean success, String message)
             throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-
         PrintWriter out = response.getWriter();
-        out.print("{\"success\":" + success + ",\"message\":\"" + message + "\"}");
+        out.print("{\"success\":" + success + ",\"message\":\"" + message.replace("\"", "\\\"") + "\"}");
         out.flush();
     }
 
-    // Helper method to handle errors
     private void handleError(HttpServletRequest request, HttpServletResponse response, Exception e)
             throws ServletException, IOException {
         e.printStackTrace();
@@ -769,10 +685,13 @@ public class ReviewServlet extends HttpServlet {
         request.getRequestDispatcher("/views/error/500.jsp").forward(request, response);
     }
 
-    // Method to update review status via AJAX
     private void updateReviewStatus(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
         if (!isAdminUser(request)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             sendJsonResponse(response, false, "Admin access required");
             return;
         }
@@ -780,37 +699,41 @@ public class ReviewServlet extends HttpServlet {
         String reviewId = request.getParameter("reviewId");
         String statusStr = request.getParameter("status");
 
-        if (reviewId == null || statusStr == null) {
-            sendJsonResponse(response, false, "Missing required parameters");
+        if (reviewId == null || statusStr == null || reviewId.trim().isEmpty() || statusStr.trim().isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            sendJsonResponse(response, false, "Missing or empty required parameters");
             return;
         }
 
         try {
             Optional<Review> reviewOptional = reviewDAO.getReviewById(reviewId);
             if (!reviewOptional.isPresent()) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 sendJsonResponse(response, false, "Review not found");
                 return;
             }
 
             Review review = reviewOptional.get();
-            Review.ReviewStatus newStatus = Review.ReviewStatus.valueOf(statusStr);
+            Review.ReviewStatus newStatus = Review.ReviewStatus.valueOf(statusStr.toUpperCase());
             review.setStatus(newStatus);
 
             boolean updated = reviewDAO.updateReview(review);
             if (updated) {
                 sendJsonResponse(response, true, "Review status updated successfully");
             } else {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 sendJsonResponse(response, false, "Failed to update review status");
             }
         } catch (IllegalArgumentException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             sendJsonResponse(response, false, "Invalid status value");
         } catch (Exception e) {
             e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             sendJsonResponse(response, false, "An error occurred: " + e.getMessage());
         }
     }
 
-    // Helper class for review statistics
     public static class ReviewStats {
         private int totalReviews;
         private int approvedReviews;
@@ -824,7 +747,6 @@ public class ReviewServlet extends HttpServlet {
             this.approvedReviews = approvedReviews;
             this.pendingReviews = pendingReviews;
             this.averageRating = averageRating;
-
             if (totalReviews > 0) {
                 this.approvedPercentage = (int) ((double) approvedReviews / totalReviews * 100);
                 this.pendingPercentage = (int) ((double) pendingReviews / totalReviews * 100);

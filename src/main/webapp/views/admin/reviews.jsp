@@ -291,8 +291,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Get context path from meta tag
+    // Get context path from meta tag or default to empty string
     const contextPath = document.querySelector('meta[name="context-path"]')?.getAttribute('content') || '';
+
+    // Ensure context path is clean (remove trailing slashes)
+    const cleanContextPath = contextPath.replace(/\/+$/, '');
 
     // Bulk action handling
     const bulkActionSelect = document.getElementById('bulk-action');
@@ -302,13 +305,13 @@ document.addEventListener('DOMContentLoaded', function() {
         applyBulkActionBtn.addEventListener('click', function() {
             const selectedReviews = document.querySelectorAll('input[name="selected-items"]:checked');
             if (selectedReviews.length === 0) {
-                alert('Please select at least one review');
+                showNotification('Please select at least one review', 'error');
                 return;
             }
 
             const action = bulkActionSelect.value;
             if (!action) {
-                alert('Please select an action');
+                showNotification('Please select an action', 'error');
                 return;
             }
 
@@ -342,23 +345,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to process review status updates
     function processReviewAction(reviewId, status) {
-        // Build the complete URL with context path
-        const url = `${contextPath}/review/update-status`;
+        const url = `${cleanContextPath}/review/update-status`;
 
         console.log(`Sending request to: ${url}`);
         console.log(`Review ID: ${reviewId}, Status: ${status}`);
 
+        // Encode parameters to handle special characters
+        const params = new URLSearchParams();
+        params.append('reviewId', reviewId);
+        params.append('status', status);
+
         fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: `reviewId=${reviewId}&status=${status}`
+            body: params.toString()
         })
         .then(response => {
             console.log('Response status:', response.status);
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                });
             }
             return response.json();
         })
@@ -370,55 +380,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update row status
                 const row = document.querySelector(`tr[data-id="${reviewId}"]`);
                 if (row) {
-                    // Update status badge
                     const statusBadge = row.querySelector('.status-badge');
                     if (statusBadge) {
                         statusBadge.className = `status-badge status-${status.toLowerCase()}`;
                         statusBadge.textContent = status;
                     }
 
-                    // Remove action buttons
                     const actionButtons = row.querySelector('.action-buttons');
                     if (actionButtons) {
                         actionButtons.innerHTML = `
-                            <a href="${contextPath}/review/details?reviewId=${reviewId}" class="btn btn-sm">View</a>
+                            <a href="${cleanContextPath}/review/details?reviewId=${reviewId}" class="btn btn-sm">View</a>
                         `;
                     }
                 }
             } else {
-                showNotification(data.message || 'Failed to update review', 'error');
+                showNotification(data.message || 'Failed to update review status', 'error');
             }
         })
         .catch(error => {
             console.error('Error updating review:', error);
-            showNotification('An error occurred. Please try again.', 'error');
+            showNotification(`An error occurred: ${error.message}`, 'error');
         });
     }
 
     function processBulkAction(reviewIds, action) {
-        fetch(`${contextPath}/review/bulk-action`, {
+        const url = `${cleanContextPath}/review/bulk-action`;
+
+        fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 ids: reviewIds,
                 action: action
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                showNotification(`${data.processedCount} reviews processed successfully`);
-
-                // Remove deleted/processed rows
+                showNotification(`${data.processedCount || reviewIds.length} reviews processed successfully`);
                 if (action === 'delete') {
                     reviewIds.forEach(id => {
                         const row = document.querySelector(`tr[data-id="${id}"]`);
                         if (row) row.remove();
                     });
                 } else {
-                    // Reload page for other actions
                     window.location.reload();
                 }
             } else {
@@ -427,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error processing bulk action:', error);
-            showNotification('An error occurred. Please try again.', 'error');
+            showNotification(`An error occurred: ${error.message}`, 'error');
         });
     }
 
