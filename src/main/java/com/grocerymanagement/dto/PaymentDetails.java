@@ -4,6 +4,7 @@ import com.grocerymanagement.model.Payment;
 import java.io.Serializable;
 
 public class PaymentDetails implements Serializable {
+    private String cardId; // Added this field
     private String cardNumber;
     private String cardHolderName;
     private String expiryDate;
@@ -27,7 +28,27 @@ public class PaymentDetails implements Serializable {
         this.paymentMethod = paymentMethod;
     }
 
+    // Constructor with cardId
+    public PaymentDetails(
+            String cardId,
+            String cardNumber,
+            String cardHolderName,
+            String expiryDate,
+            String cvv,
+            Payment.PaymentMethod paymentMethod
+    ) {
+        this.cardId = cardId;
+        this.cardNumber = cardNumber;
+        this.cardHolderName = cardHolderName;
+        this.expiryDate = expiryDate;
+        this.cvv = cvv;
+        this.paymentMethod = paymentMethod;
+    }
+
     // Getters and Setters
+    public String getCardId() { return cardId; }
+    public void setCardId(String cardId) { this.cardId = cardId; }
+
     public String getCardNumber() { return cardNumber; }
     public void setCardNumber(String cardNumber) { this.cardNumber = cardNumber; }
 

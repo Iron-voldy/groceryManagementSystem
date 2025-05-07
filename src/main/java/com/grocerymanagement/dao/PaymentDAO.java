@@ -99,6 +99,7 @@ public class PaymentDAO {
     }
 
     // Get saved cards for a user
+    // Get saved cards for a user - modify this method in PaymentDAO
     public List<PaymentDetails> getSavedCards(String userId) {
         List<PaymentDetails> savedCards = new ArrayList<>();
 
@@ -115,6 +116,7 @@ public class PaymentDAO {
                     String[] parts = line.split("\\|");
 
                     PaymentDetails card = new PaymentDetails(
+                            parts[0], // This is the cardId
                             parts[2], // Masked card number
                             parts[3], // Card holder name
                             parts[4], // Expiry date
@@ -122,7 +124,6 @@ public class PaymentDAO {
                             Payment.PaymentMethod.valueOf(parts[6]) // Payment method
                     );
 
-                    // Set card ID
                     return card;
                 })
                 .collect(Collectors.toList());

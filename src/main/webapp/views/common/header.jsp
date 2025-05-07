@@ -173,6 +173,47 @@
             color: white;
         }
 
+        /* User dropdown menu */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            border-radius: 0.25rem;
+            padding: 0.5rem 0;
+        }
+
+        .user-dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 0.5rem 0;
+        }
+
         /* Responsive Breakpoints */
         @media (max-width: 992px) {
             .navbar-collapse {
@@ -200,6 +241,13 @@
 
             .cart-link {
                 margin: 0.5rem 0;
+            }
+
+            .dropdown-menu {
+                position: static;
+                box-shadow: none;
+                width: 100%;
+                margin-top: 0.5rem;
             }
         }
 
@@ -330,6 +378,11 @@
                         <li class="nav-item">
                             <a class="nav-link ${param.active == 'products' ? 'active' : ''}" href="${pageContext.request.contextPath}/product/list">Products</a>
                         </li>
+                        <c:if test="${not empty sessionScope.user}">
+                            <li class="nav-item">
+                                <a class="nav-link ${param.active == 'orders' ? 'active' : ''}" href="${pageContext.request.contextPath}/order/user-orders">My Orders</a>
+                            </li>
+                        </c:if>
                     </ul>
 
                     <form class="search-form d-flex" action="${pageContext.request.contextPath}/product/search" method="get">
@@ -346,12 +399,26 @@
                                 <a href="${pageContext.request.contextPath}/views/user/register.jsp" class="btn btn-primary">Register</a>
                             </c:when>
                             <c:otherwise>
-                                <a href="${pageContext.request.contextPath}/views/user/profile.jsp" class="nav-link">
-                                    <i class="fas fa-user"></i> ${sessionScope.user.username}
-                                </a>
-                                <a href="${pageContext.request.contextPath}/user/logout" class="nav-link">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a>
+                                <div class="user-dropdown">
+                                    <a href="#" class="nav-link">
+                                        <i class="fas fa-user"></i> ${sessionScope.user.username} <i class="fas fa-chevron-down ml-1"></i>
+                                    </a>
+                                    <div class="dropdown-menu">
+                                        <a href="${pageContext.request.contextPath}/views/user/profile.jsp" class="dropdown-item">
+                                            <i class="fas fa-user-circle mr-2"></i> Profile
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/order/user-orders" class="dropdown-item">
+                                            <i class="fas fa-shopping-bag mr-2"></i> My Orders
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/payment/saved-cards" class="dropdown-item">
+                                            <i class="fas fa-credit-card mr-2"></i> Payment Methods
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a href="${pageContext.request.contextPath}/user/logout" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                                        </a>
+                                    </div>
+                                </div>
                             </c:otherwise>
                         </c:choose>
 
